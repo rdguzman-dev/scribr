@@ -1,0 +1,20 @@
+[project]
+name = "scribr"
+version = "0.1.0"
+description = "Automated audio-to-MIDI transcription for quantized monophonic melodies."
+readme = "README.md"
+authors = [
+    {
+        name = "Ricardo D. Guzman",
+        email = "rdguzman.dev@gmail.com",
+    },
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+scribr = "scribr:main"
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
