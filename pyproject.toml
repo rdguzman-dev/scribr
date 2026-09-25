@@ -1,7 +1,7 @@
 [project]
 name = "scribr"
 version = "0.1.0"
-description = "Automated audio-to-MIDI transcription for quantized monophonic melodies."
+description = "Automated music transcription for quantized monophonic audio."
 readme = "README.md"
 authors = [
     {
