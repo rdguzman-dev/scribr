@@ -42,9 +42,9 @@ expects:
 
 ```text
 data/raw/4-bars-monophonic/
-├── train/          # 8 shards, 10,126,676 melodies
-├── validation/     # 8 shards, 70,908 melodies
-└── test/           # 8 shards, 22,265 melodies
+├── train/       # 8 shards, 10,126,676 melodies
+├── validation/  # 8 shards, 70,908 melodies
+└── test/        # 8 shards, 22,265 melodies
 ```
 
 ```bash
@@ -64,6 +64,7 @@ Synthesis needs the FluidSynth system library and a General MIDI SoundFont
 ```bash
 # macOS
 brew install fluid-synth
+
 # Debian/Ubuntu
 sudo apt install libfluidsynth3
 ```
@@ -84,7 +85,7 @@ Homebrew FluidSynth library is present there.
 
 ```bash
 uv run pytest
-uv run scribr   # prints a short banner if the package is importable
+uv run scribr  # prints a short banner if the package is importable
 ```
 
 Unit tests use committed fixtures and a fake FluidSynth backend, so they pass
@@ -101,10 +102,10 @@ uv run pytest -m integration
 
 ```text
 src/scribr/
-├── representation/   # Note, Melody, MelodyExample, pitch-sequence codec
-├── data/             # lazy TFRecord access (MelodyDataset)
-├── synthesis/        # Melody -> audio (Synthesizer)
-└── midi/             # Melody -> .mid (write_midi)
+├── representation/  # Note, Melody, MelodyExample, pitch-sequence codec
+├── data/            # lazy TFRecord access (MelodyDataset)
+├── synthesis/       # Melody -> audio (Synthesizer)
+└── midi/            # Melody -> .mid (write_midi)
 scripts/download_dataset.py
 tests/
 ```
@@ -166,8 +167,8 @@ shuffle with a seeded bounded buffer:
 ```python
 dataset = MelodyDataset(
     split="train",
-    max_examples=100_000,   # per worker
-    seed=42,                # deterministic shuffle order
+    max_examples=100_000,  # per worker
+    seed=42,               # deterministic shuffle order
     shuffle=True,
     shuffle_buffer_size=10_000,
 )
@@ -251,8 +252,8 @@ note-level metrics such as those in `mir_eval`.
 ## Tests
 
 ```bash
-uv run pytest                  # unit tests, no dataset or SoundFont needed
-uv run pytest -m integration   # FluidSynth rendering (needs SCRIBR_SOUNDFONT)
+uv run pytest                 # unit tests, no dataset or SoundFont needed
+uv run pytest -m integration  # FluidSynth rendering (needs SCRIBR_SOUNDFONT)
 ```
 
 Unit tests use byte-identical prefixes of real published shards
