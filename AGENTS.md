@@ -57,6 +57,18 @@ The agent may use read-only Git commands such as `git status`, but must not
 create branches, stage files, commit, push, merge, rebase, or otherwise
 modify Git state.
 
+PR descriptions and merge commit descriptions must use the same
+description and follow this structure:
+
+```text
+Add ... layer, including:
+
+- ...
+```
+
+Regular commits should use only a concise one-line message and do not need
+an extended description.
+
 ## Dependencies
 
 - Do not add a dependency without first explaining why it is necessary.
