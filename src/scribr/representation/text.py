@@ -36,6 +36,51 @@ _PITCH_CLASSES = {
 
 _ACCIDENTAL_OFFSETS = {"#": 1, "b": -1}
 
+# Pitch class names in sharp-only spelling, indexed by semitone.
+_PITCH_CLASS_NAMES = (
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
+)
+
+
+def melody_to_text(melody: Melody) -> str:
+    """Serialize a `Melody` to a `pitch, onset, offset` table.
+
+    The output has no header, one note per row, and a trailing newline
+    after the last note. Pitch names always use sharps and times are
+    written with `str(float)` so they round-trip exactly through
+    `melody_from_text`.
+
+    Args:
+        melody: Melody to serialize.
+
+    Returns:
+        The note table, or `""` for an empty melody.
+    """
+    lines = [
+        f"{_midi_to_pitch_name(note.pitch)}, {note.onset}, {note.offset}"
+        for note in melody.notes
+    ]
+
+    if not lines:
+        return ""
+
+    return "\n".join(lines) + "\n"
+
+
+def _midi_to_pitch_name(pitch: int) -> str:
+    return f"{_PITCH_CLASS_NAMES[pitch % 12]}{pitch // 12 - 1}"
+
 
 def melody_from_text(text: str) -> Melody:
     """Parse a `pitch, onset, offset` table into a `Melody`.

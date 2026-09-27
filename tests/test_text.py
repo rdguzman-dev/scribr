@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from scribr.representation.melody import Melody, Note
-from scribr.representation.text import melody_from_text
+from scribr.representation.text import melody_from_text, melody_to_text
 
 SAMPLE = """\
 pitch, onset, offset
@@ -149,3 +149,60 @@ def test_offset_must_be_greater_than_onset() -> None:
 
     with pytest.raises(ValueError, match=r"line 1: offset 0.25"):
         melody_from_text("C4, 0.5, 0.25")
+
+
+def test_melody_to_text_round_trips_all_midi_pitches() -> None:
+    melody = Melody(
+        tuple(Note(pitch, 0.0, 1.0) for pitch in range(128))
+    )
+
+    assert melody_from_text(melody_to_text(melody)) == melody
+
+
+def test_melody_to_text_round_trips_times_exactly() -> None:
+    melody = Melody(
+        (
+            Note(60, 0.0, 0.25),
+            Note(61, 0.25, 2.5),
+            Note(62, 0.289, 1.039),
+        )
+    )
+    text = melody_to_text(melody)
+
+    assert melody_from_text(text) == melody
+    assert "0.289" in text
+    assert "1.039" in text
+
+
+def test_melody_to_text_empty_melody_is_empty_string() -> None:
+    assert melody_to_text(Melody()) == ""
+
+
+def test_melody_to_text_preserves_note_order() -> None:
+    melody = Melody((Note(67, 1.0, 2.0), Note(60, 0.0, 1.0)))
+
+    assert melody_to_text(melody) == "G4, 1.0, 2.0\nC4, 0.0, 1.0\n"
+    assert melody_from_text(melody_to_text(melody)) == melody
+
+
+def test_melody_to_text_has_no_header_and_trailing_newline() -> None:
+    text = melody_to_text(Melody((Note(60, 0.0, 0.5),)))
+
+    assert text == "C4, 0.0, 0.5\n"
+    assert melody_from_text(text).notes == (Note(60, 0.0, 0.5),)
+
+
+def test_melody_to_text_uses_sharps_only() -> None:
+    assert melody_to_text(Melody((Note(61, 0.0, 1.0),))) == (
+        "C#4, 0.0, 1.0\n"
+    )
+    assert melody_to_text(Melody((Note(0, 0.0, 1.0),))) == "C-1, 0.0, 1.0\n"
+    assert melody_to_text(Melody((Note(127, 0.0, 1.0),))) == (
+        "G9, 0.0, 1.0\n"
+    )
+
+
+def test_melody_to_text_exported_from_representation_package() -> None:
+    from scribr.representation import melody_to_text as package_function
+
+    assert package_function is melody_to_text
