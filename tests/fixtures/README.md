@@ -1,9 +1,9 @@
 # Test fixtures
 
-These fixtures are **byte-identical prefixes of real shards** from the
-published *4 Bars Monophonic Melodies Dataset (Pitch Sequence)*
-(<https://zenodo.org/records/13369389>, CC-BY-4.0), not synthetic data. They
-are committed so the parser and dataset tests run without downloading
+These fixtures are **byte-identical prefixes of real shards** from the *4 Bars
+Monophonic Melodies Dataset (Pitch Sequence)* [doi:10.5281/zenodo.13369389](https://doi.org/10.5281/zenodo.13369389), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+They are committed so the parser and dataset tests run without downloading
 713 MB of data.
 
 | File | Origin | Contents |
