@@ -232,14 +232,14 @@ Scribr.
 from scribr.data import MelodyDataset
 from scribr.synthesis import Synthesizer
 
-example = next(iter(MelodyDataset(split="test")))
-synthesizer = Synthesizer(sample_rate=22_050)
+example = next(iter(MelodyDataset(split="train", max_examples=10)))
+synthesizer = Synthesizer()
 audio = synthesizer.synthesize(example.melody)
 ```
 
-The waveform is a 1-D `float32` array in [-1, 1]. Each call creates a fresh
-FluidSynth instance, so release tails and controller state cannot leak from
-one melody into the next, and nothing is written to disk. `soundfont_path`,
+The audio waveform is a 1-D `float32` array in `[-1, 1]`. Each call creates a
+fresh FluidSynth instance, so release tails and controller state cannot leak
+from one melody into the next, and nothing is written to disk. `soundfont_path`,
 `sample_rate`, `tempo`, `program`, `velocity`, `gain`, `release_tail_seconds`,
 and `midi_channel` are constructor arguments.
 
