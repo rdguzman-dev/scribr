@@ -158,6 +158,7 @@ def test_no_soundfont_configured_raises(
 
 def test_soundfont_can_come_from_environment(
     monkeypatch: pytest.MonkeyPatch,
+    fake_fluidsynth: type[FakeSynth],
     soundfont_file: Path,
 ) -> None:
     monkeypatch.setenv(SOUNDFONT_ENV_VAR, str(soundfont_file))
