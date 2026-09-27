@@ -11,6 +11,7 @@ approaches, not the approaches themselves:
 - `scribr.data` streams the TFRecord dataset on demand.
 - `scribr.synthesis` renders a `Melody` to audio with FluidSynth.
 - `scribr.midi` exports a `Melody` to a Standard MIDI File.
+- `scribr.wav` saves synthesized audio to a WAV file.
 - `scribr.transcription` defines the `Transcriber` protocol that every
   approach implements.
 - `scribr.evaluation` scores a transcription against a reference
@@ -140,6 +141,7 @@ src/scribr/
 ├── data/             # lazy TFRecord access (MelodyDataset)
 ├── synthesis/        # Melody -> audio (Synthesizer)
 ├── midi/             # Melody -> .mid (write_midi)
+├── wav/              # audio -> .wav (write_wav)
 ├── transcription.py  # Transcriber protocol (audio -> Melody)
 └── evaluation/       # mir_eval metrics (evaluate, evaluate_transcriber)
 scripts/download_dataset.py
@@ -162,8 +164,10 @@ flowchart TD
     I --> J
 
     C -.-> G[.mid]
+    F -.-> L[.wav]
 
     style G stroke-dasharray: 5 5
+    style L stroke-dasharray: 5 5
 
     click A "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/data/dataset.py"
     click B "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
@@ -174,9 +178,10 @@ flowchart TD
     click K "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
     click J "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/evaluation/metrics.py"
     click G "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/midi/writer.py"
+    click L "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/wav/writer.py"
 
     classDef clickable fill:#1f2937,stroke:#6b7280,color:#f9fafb
-    class A,B,C,F,H,I,K,J,G clickable
+    class A,B,C,F,H,I,K,J,G,L clickable
 ```
 
 Every approach implements `Transcriber` and returns a `Melody`, so predictions
@@ -260,6 +265,25 @@ fresh FluidSynth instance, so release tails and controller state cannot leak
 from one melody into the next, and nothing is written to disk. `soundfont_path`,
 `sample_rate`, `tempo`, `program`, `velocity`, `gain`, `release_tail_seconds`,
 and `midi_channel` are constructor arguments.
+
+### WAV export
+
+`write_wav` saves a synthesized waveform as a mono 16-bit PCM WAV file:
+
+```python
+from scribr.data import MelodyDataset
+from scribr.synthesis import Synthesizer
+from scribr.wav import write_wav
+
+example = next(iter(MelodyDataset(split="test")))
+synthesizer = Synthesizer()
+audio = synthesizer.synthesize(example.melody)
+write_wav(audio, synthesizer.sample_rate, "output.wav")
+```
+
+Samples outside `[-1, 1]` are clipped rather than wrapped, so the writer
+also accepts unnormalized audio. WAV is an export format only; nothing in
+the dataset, training, or evaluation path reads it.
 
 ### MIDI export
 
