@@ -40,9 +40,8 @@ uv sync
 
 The dataset is the 4 Bars Monophonic Melodies Dataset (PitchSequence), which
 is not committed to this repository. The download script fetches the published
-archives from [Zenodo](https://zenodo.org/records/13369389), verifies their
-MD5 checksums, and extracts the shards into the layout `MelodyDataset`
-expects:
+archives from Zenodo, verifies their MD5 checksums, and extracts the shards into
+the layout `MelodyDataset` expects:
 
 ```text
 data/raw/4-bars-monophonic/
