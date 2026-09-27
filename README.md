@@ -16,7 +16,7 @@ approaches, not the approaches themselves:
 - `scribr.evaluation` scores a transcription against a reference
   `Melody` with `mir_eval`.
 
-There is no transcription approach yet.
+There are no implemented transcription approaches yet.
 
 ## Setup
 
@@ -237,7 +237,7 @@ synthesizer = Synthesizer(sample_rate=22_050)
 audio = synthesizer.synthesize(example.melody)
 ```
 
-The waveform is a 1-D float32 array in [-1, 1]. Each call creates a fresh
+The waveform is a 1-D `float32` array in [-1, 1]. Each call creates a fresh
 FluidSynth instance, so release tails and controller state cannot leak from
 one melody into the next, and nothing is written to disk. `soundfont_path`,
 `sample_rate`, `tempo`, `program`, `velocity`, `gain`, `release_tail_seconds`,
@@ -266,8 +266,8 @@ pitches stay separate notes instead of merging.
 
 ### Transcription approaches
 
-No transcription approach is implemented yet. Each one implements
-`Transcriber` and returns the canonical `Melody`:
+No transcription approach is implemented yet. Each one should implement
+`Transcriber` and return the canonical `Melody`:
 
 ```python
 import numpy as np
@@ -285,8 +285,8 @@ class MyTranscriber:
         raise NotImplementedError("algorithmic / DL / LLM approach")
 ```
 
-The harness passes raw `Synthesizer.synthesize` output, `sample_rate` in Hz,
-and the `tempo` in BPM the audio was rendered at. Any resampling,
+The harness should pass raw `Synthesizer.synthesize` output, `sample_rate` in
+Hz, and the `tempo` in BPM the audio was rendered at. Any resampling,
 normalization, or feature extraction is the approach's business. The returned
 `Melody` uses quarter-note beats measured from the first audio sample, the
 same convention as the dataset. An empty `Melody` is a valid transcription of
@@ -335,8 +335,8 @@ The metrics mirror `mir_eval.transcription.evaluate`:
 Defaults are 50 ms onset tolerance, 50 cents pitch tolerance, and an offset
 tolerance of 20% of the reference note duration (with a 50 ms floor). All are
 function arguments. `melody_to_mir_eval` converts beats to seconds and MIDI
-numbers to Hertz for `mir_eval`; skipping the Hertz conversion would make a
-semitone look like 28.6 cents instead of 100.
+numbers to Hz for `mir_eval`; skipping the Hz conversion would make a semitone
+look like 28.6 cents instead of 100.
 
 `evaluate_transcriber` averages each metric across examples, so every example
 weighs the same regardless of note count. Silent examples score 0 because
