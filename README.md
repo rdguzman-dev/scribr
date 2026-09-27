@@ -174,7 +174,7 @@ flowchart TD
     click I "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
     click K "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
     click J "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/evaluation/metrics.py"
-    click G "https://github.com/rdguzman-dev/scribr/blob/main/src/scrbir/midi/writer.py"
+    click G "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/midi/writer.py"
 
     classDef clickable fill:#1f2937,stroke:#6b7280,color:#f9fafb
     class A,B,C,F,H,I,K,J,G clickable
