@@ -165,6 +165,16 @@ flowchart TD
     C -.-> G[.mid]
 
     style G stroke-dasharray: 5 5
+
+    click A "src/scribr/data/dataset.py"
+    click B "src/scribr/representation/melody.py"
+    click C "src/scribr/representation/melody.py"
+    click F "src/scribr/synthesis/synthesizer.py"
+    click H "src/scribr/transcription.py"
+    click I "src/scribr/representation/melody.py"
+    click K "src/scribr/representation/melody.py"
+    click J "src/scribr/evaluation/metrics.py"
+    click G "src/scrbir/midi/writer.py"
 ```
 
 Every approach implements `Transcriber` and returns a `Melody`, so predictions
