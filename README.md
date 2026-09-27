@@ -26,8 +26,8 @@ There are no implemented transcription approaches yet.
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - FluidSynth and a General MIDI SoundFont (only for audio synthesis)
 
-`uv sync` installs PyTorch, numpy, mido, `tfrecord`, `pyfluidsynth`,
-`mir_eval`, and pytest. TensorFlow is not required.
+`uv sync` installs PyTorch, `numpy`, `mido`, `tfrecord`, `pyfluidsynth`,
+`mir_eval`, and `pytest`. TensorFlow is not required.
 
 ### 1. Install dependencies
 
@@ -232,7 +232,11 @@ Scribr.
 from scribr.data import MelodyDataset
 from scribr.synthesis import Synthesizer
 
-example = next(iter(MelodyDataset(split="train", max_examples=10)))
+dataset = MelodyDataset(
+    split="train",
+    max_examples=10,
+)
+example = next(iter(dataset))
 synthesizer = Synthesizer()
 audio = synthesizer.synthesize(example.melody)
 ```
@@ -256,7 +260,10 @@ example = next(iter(MelodyDataset(split="test")))
 write_midi(
     example.melody,
     "output.mid",
-    MidiExportConfig(tempo=120.0, program=0),  # 0 = Acoustic Grand Piano
+    MidiExportConfig(
+        tempo=120.0,
+        program=0,  # 0 = Acoustic Grand Piano
+    ),
 )
 ```
 
@@ -308,10 +315,20 @@ from scribr.evaluation import evaluate, evaluate_transcriber
 from scribr.synthesis import Synthesizer
 
 synthesizer = Synthesizer()
-dataset = MelodyDataset(split="validation", max_examples=100)
+dataset = MelodyDataset(
+    split="validation",
+    max_examples=100,
+)
 
-report = evaluate_transcriber(MyTranscriber(), dataset, synthesizer)
-print(report.num_examples, report.metrics["F-measure_no_offset"])
+report = evaluate_transcriber(
+    MyTranscriber(),
+    dataset,
+    synthesizer,
+)
+print(
+    report.num_examples,
+    report.metrics["F-measure_no_offset"],
+)
 ```
 
 For a single example:
@@ -320,9 +337,15 @@ For a single example:
 example = next(iter(dataset))
 audio = synthesizer.synthesize(example.melody)
 estimate = MyTranscriber().transcribe(
-    audio, synthesizer.sample_rate, synthesizer.tempo
+    audio,
+    synthesizer.sample_rate, 
+    synthesizer.tempo,
 )
-scores = evaluate(example.melody, estimate, tempo=synthesizer.tempo)
+scores = evaluate(
+    example.melody,
+    estimate,
+    tempo=synthesizer.tempo,
+)
 ```
 
 The metrics mirror `mir_eval.transcription.evaluate`:
