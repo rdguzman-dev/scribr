@@ -149,20 +149,22 @@ tests/
 
 ### Data flow
 
-```text
-TFRecord shards
-      │  scribr.data (lazy IterableDataset)
-      ▼
-MelodyExample ──► Melody  (canonical symbolic type)
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-   scribr.synthesis          scribr.midi
-   Melody ──► audio          Melody ──► .mid
+```mermaid
+flowchart TD
+    A[TFRecord shards] --> B[MelodyExample]
+    B --> C[Melody]
 
-audio ──► Transcriber ──► estimated Melody ──┐
-                                             ├──► scribr.evaluation ──► metrics
-reference Melody ────────────────────────────┘
+    C --> F[audio]
+    F --> H[Transcriber]
+    H --> I[estimated Melody]
+
+    C --> K[reference Melody]
+    K --> J[evaluation metrics]
+    I --> J
+
+    C -.-> G[.mid]
+
+    style G stroke-dasharray: 5 5
 ```
 
 Every approach implements `Transcriber` and returns a `Melody`, so predictions
