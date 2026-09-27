@@ -1,5 +1,6 @@
 """On-demand audio synthesis of Scribr melodies."""
 
+from .instruments import INSTRUMENT_PROGRAMS, Instrument
 from .synthesizer import (
     DEFAULT_GAIN,
     DEFAULT_PROGRAM,
@@ -18,6 +19,8 @@ __all__ = [
     "DEFAULT_SAMPLE_RATE",
     "DEFAULT_TEMPO_BPM",
     "DEFAULT_VELOCITY",
+    "INSTRUMENT_PROGRAMS",
     "SOUNDFONT_ENV_VAR",
+    "Instrument",
     "Synthesizer",
 ]
