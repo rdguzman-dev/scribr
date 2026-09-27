@@ -50,7 +50,7 @@ data/raw/4-bars-monophonic/
 The dataset is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 **Dataset:** Pettenò, Matteo. *4 Bars Monophonic Melodies Dataset (Pitch
-Sequence)*. Zenodo, 2024. https://doi.org/10.5281/zenodo.13369389
+Sequence)*. Zenodo, 2024. [doi:10.5281/zenodo.13369389](https://doi.org/10.5281/zenodo.13369389)
 
 To download all the shards, run:
 
@@ -104,6 +104,9 @@ Scribr at it:
 ```bash
 export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
 ```
+
+SoundFonts are separate from the dataset and may have their own license terms.
+Make sure to check the license of the SoundFont you use.
 
 `Synthesizer(soundfont_path=...)` also accepts a path directly. On macOS,
 Scribr sets `HOMEBREW_PREFIX` to `/opt/homebrew` when it is unset and the
@@ -176,9 +179,9 @@ print(example.attributes["note_density"])
 print(example.pitch_sequence[:8])  # (63, 128, 128, 64, ...) pitch-sequence tokens
 ```
 
-Each melody is 64 steps: 4 bars of 4/4, quantized to 4 steps per quarter note.
-A step is a MIDI pitch (`21-108`), `128` (hold the current note), or `129` (no
-note sounding). A new pitch token ends the current note, so consecutive
+Each melody contains 64 steps: 4 bars of 4/4, quantized to 4 steps per quarter
+note. A step is a MIDI pitch (`21-108`), `128` (hold the current note), or `129`
+(no note sounding). A new pitch token ends the current note, so consecutive
 identical tokens decode to separate notes. The 13 attributes computed by the
 dataset authors are preserved on `MelodyExample.attributes`.
 
@@ -220,7 +223,7 @@ from scribr.data import MelodyDataset
 from scribr.synthesis import Synthesizer
 
 example = next(iter(MelodyDataset(split="test")))
-synthesizer = Synthesizer(sample_rate=22_050)  # or Synthesizer(soundfont_path="GeneralUserGS.sf2")
+synthesizer = Synthesizer(sample_rate=22_050)
 audio = synthesizer.synthesize(example.melody)
 ```
 
@@ -280,6 +283,7 @@ for example in dataset:
 
 Each `Note` provides the `(pitch, onset, offset)` information needed by
 note-level metrics such as those in `mir_eval`.
+
 ## Tests
 
 ```bash
