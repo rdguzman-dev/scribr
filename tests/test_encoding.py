@@ -63,7 +63,9 @@ def test_decode_timings_are_exact_multiples_of_quarter_step() -> None:
 )
 def test_encode_is_inverse_of_decode(sequence: list[int]) -> None:
     notes = decode_pitch_sequence(sequence)
-    assert encode_pitch_sequence(Melody(notes), num_steps=len(sequence)) == tuple(sequence)
+    assert encode_pitch_sequence(
+        Melody(notes), num_steps=len(sequence)
+    ) == tuple(sequence)
 
 
 def test_encode_defaults_to_length_of_last_note() -> None:
@@ -103,6 +105,7 @@ def test_note_validation() -> None:
 
 def test_melody_accepts_any_iterable_of_notes() -> None:
     melody = Melody([Note(60, 0.0, 0.5)])
+
     assert isinstance(melody.notes, tuple)
     assert list(melody) == [Note(60, 0.0, 0.5)]
     assert melody.duration == 0.5

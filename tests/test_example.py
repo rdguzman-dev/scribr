@@ -1,4 +1,5 @@
-"""Tests for turning decoded TFRecord records into MelodyExample objects."""
+"""Tests for turning decoded TFRecord records into MelodyExample
+objects."""
 
 from __future__ import annotations
 
@@ -109,6 +110,7 @@ def _first_record(path: Path):
         description=CONTEXT_DESCRIPTION,
         sequence_description=SEQUENCE_DESCRIPTION,
     )
+
     return next(iter(dataset))
 
 
@@ -126,11 +128,15 @@ def test_attributes_are_preserved(fixture_head: Path) -> None:
     example = melody_example_from_features(context, features)
 
     assert set(ATTRIBUTE_NAMES) <= set(example.attributes)
-    assert example.attributes["note_density"] == pytest.approx(0.21875, abs=1e-6)
+    assert example.attributes["note_density"] == pytest.approx(
+        0.21875, abs=1e-6
+    )
     assert example.attributes["ratio_hold_note_steps"] == pytest.approx(
         0.71875, abs=1e-6
     )
-    assert all(isinstance(value, float) for value in example.attributes.values())
+    assert all(
+        isinstance(value, float) for value in example.attributes.values()
+    )
 
 
 def test_empty_context_value_becomes_nan() -> None:

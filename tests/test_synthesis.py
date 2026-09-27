@@ -1,8 +1,8 @@
 """Tests for on-demand FluidSynth synthesis.
 
-Unit tests use a fake ``fluidsynth`` module so they run anywhere.  The
-integration test at the end is skipped unless ``SCRIBR_SOUNDFONT`` points at
-a real SoundFont and the system FluidSynth library is installed.
+Unit tests use a fake `fluidsynth` module so they run anywhere.  The
+integration test at the end is skipped unless `SCRIBR_SOUNDFONT` points
+at a real SoundFont and the system FluidSynth library is installed.
 """
 
 from __future__ import annotations
@@ -53,7 +53,10 @@ class FakeSynth:
 @pytest.fixture
 def fake_fluidsynth(monkeypatch: pytest.MonkeyPatch) -> type[FakeSynth]:
     FakeSynth.instances.clear()
-    monkeypatch.setitem(sys.modules, "fluidsynth", types.SimpleNamespace(Synth=FakeSynth))
+    monkeypatch.setitem(
+        sys.modules, "fluidsynth", types.SimpleNamespace(Synth=FakeSynth)
+    )
+
     return FakeSynth
 
 
@@ -61,16 +64,20 @@ def fake_fluidsynth(monkeypatch: pytest.MonkeyPatch) -> type[FakeSynth]:
 def soundfont_file(tmp_path: Path) -> Path:
     path = tmp_path / "dummy.sf2"
     path.write_bytes(b"placeholder")
+
     return path
 
 
 def test_synthesize_returns_mono_float32(
-    fake_fluidsynth: type[FakeSynth], soundfont_file: Path
+    fake_fluidsynth: type[FakeSynth],
+    soundfont_file: Path,
 ) -> None:
     synthesizer = Synthesizer(
         soundfont_file, sample_rate=48_000, release_tail_seconds=0.5
     )
-    audio = synthesizer.synthesize(Melody((Note(60, 0.0, 1.0), Note(62, 2.0, 3.0))))
+    audio = synthesizer.synthesize(
+        Melody((Note(60, 0.0, 1.0), Note(62, 2.0, 3.0)))
+    )
 
     assert audio.dtype == np.float32
     assert audio.ndim == 1
@@ -81,14 +88,19 @@ def test_synthesize_returns_mono_float32(
 
 
 def test_synthesize_renders_between_events(
-    fake_fluidsynth: type[FakeSynth], soundfont_file: Path
+    fake_fluidsynth: type[FakeSynth],
+    soundfont_file: Path,
 ) -> None:
     synthesizer = Synthesizer(
-        soundfont_file, sample_rate=48_000, tempo=120.0, release_tail_seconds=0.5
+        soundfont_file,
+        sample_rate=48_000,
+        tempo=120.0,
+        release_tail_seconds=0.5,
     )
     synthesizer.synthesize(Melody((Note(60, 0.0, 1.0), Note(62, 2.0, 3.0))))
 
     calls = fake_fluidsynth.instances[0].calls
+
     assert calls[0] == ("sfload", str(soundfont_file))
     assert calls[1] == ("program_select", 0, 7, 0, 0)
     assert calls[2:] == [
@@ -104,20 +116,28 @@ def test_synthesize_renders_between_events(
 
 
 def test_adjacent_same_pitch_releases_before_rearticulating(
-    fake_fluidsynth: type[FakeSynth], soundfont_file: Path
+    fake_fluidsynth: type[FakeSynth],
+    soundfont_file: Path,
 ) -> None:
     synthesizer = Synthesizer(soundfont_file, sample_rate=48_000)
     synthesizer.synthesize(Melody((Note(60, 0.0, 0.5), Note(60, 0.5, 1.0))))
 
-    note_calls = [call[0] for call in fake_fluidsynth.instances[0].calls if call[0].startswith("note")]
+    note_calls = [
+        call[0]
+        for call in fake_fluidsynth.instances[0].calls
+        if call[0].startswith("note")
+    ]
+
     assert note_calls == ["noteon", "noteoff", "noteon", "noteoff"]
 
 
 def test_empty_melody_returns_empty_array_without_opening_synth(
-    fake_fluidsynth: type[FakeSynth], soundfont_file: Path
+    fake_fluidsynth: type[FakeSynth],
+    soundfont_file: Path,
 ) -> None:
     synthesizer = Synthesizer(soundfont_file)
     audio = synthesizer.synthesize(Melody())
+
     assert audio.size == 0
     assert audio.dtype == np.float32
     assert fake_fluidsynth.instances == []
@@ -128,7 +148,9 @@ def test_missing_soundfont_raises(tmp_path: Path) -> None:
         Synthesizer(tmp_path / "missing.sf2")
 
 
-def test_no_soundfont_configured_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_no_soundfont_configured_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv(SOUNDFONT_ENV_VAR, raising=False)
     with pytest.raises(ValueError, match=SOUNDFONT_ENV_VAR):
         Synthesizer()
@@ -136,11 +158,11 @@ def test_no_soundfont_configured_raises(monkeypatch: pytest.MonkeyPatch) -> None
 
 def test_soundfont_can_come_from_environment(
     monkeypatch: pytest.MonkeyPatch,
-    fake_fluidsynth: type[FakeSynth],
     soundfont_file: Path,
 ) -> None:
     monkeypatch.setenv(SOUNDFONT_ENV_VAR, str(soundfont_file))
     synthesizer = Synthesizer()
+
     assert synthesizer.soundfont_path == soundfont_file
     assert synthesizer.synthesize(Melody((Note(60, 0.0, 0.5),))).size > 0
 
@@ -164,7 +186,8 @@ def test_invalid_settings_rejected(soundfont_file: Path) -> None:
 
 @pytest.mark.integration
 def test_real_fluidsynth_renders_dataset_melody(
-    soundfont_path: Path, data_root: Path
+    soundfont_path: Path,
+    data_root: Path,
 ) -> None:
     example = next(iter(MelodyDataset(split="test", root=data_root)))
     synthesizer = Synthesizer(
@@ -173,6 +196,7 @@ def test_real_fluidsynth_renders_dataset_melody(
     audio = synthesizer.synthesize(example.melody)
 
     expected_samples = round((example.melody.duration * 0.5 + 0.5) * 22_050)
+
     assert audio.dtype == np.float32
     assert abs(audio.size - expected_samples) <= 1
     assert np.max(np.abs(audio)) > 0.001

@@ -20,6 +20,7 @@ def test_iterates_all_shards_in_order(data_root: Path) -> None:
     ]
 
     examples = list(dataset)
+
     assert len(examples) == 12  # 8 + 4 records
     # First example comes from shard 0, ninth from shard 1.
     assert examples[0].pitch_sequence[:4] == (63, 128, 128, 64)
@@ -27,9 +28,12 @@ def test_iterates_all_shards_in_order(data_root: Path) -> None:
 
 
 def test_worker_shards_are_disjoint_and_complete(
-    data_root: Path, monkeypatch: pytest.MonkeyPatch
+    data_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    ordered = [e.pitch_sequence for e in MelodyDataset(split="train", root=data_root)]
+    ordered = [
+        e.pitch_sequence for e in MelodyDataset(split="train", root=data_root)
+    ]
 
     def collect(worker_id: int) -> list[tuple[int, ...]]:
         monkeypatch.setattr(
@@ -65,6 +69,7 @@ def test_missing_data_gives_actionable_error(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError) as error:
         MelodyDataset(split="train", root=tmp_path)
     message = str(error.value)
+
     assert str(tmp_path / "train") in message
     assert "download script" in message
     assert "README.md" in message
@@ -73,6 +78,7 @@ def test_missing_data_gives_actionable_error(tmp_path: Path) -> None:
 def test_max_examples_limits_the_stream(data_root: Path) -> None:
     dataset = MelodyDataset(split="train", root=data_root, max_examples=5)
     examples = list(dataset)
+
     assert len(examples) == 5
     assert examples == list(MelodyDataset(split="train", root=data_root))[:5]
 
@@ -86,12 +92,14 @@ def test_iteration_is_repeatable(data_root: Path) -> None:
     dataset = MelodyDataset(split="train", root=data_root, max_examples=8)
     first = [example.pitch_sequence for example in dataset]
     second = [example.pitch_sequence for example in dataset]
+
     assert first == second
 
 
 def test_unshuffled_iteration_preserves_storage_order(data_root: Path) -> None:
     dataset = MelodyDataset(split="train", root=data_root, max_examples=6)
     expected = list(MelodyDataset(split="train", root=data_root))[:6]
+
     assert list(dataset) == expected
 
 
@@ -112,13 +120,20 @@ def test_seeded_shuffle_is_deterministic(data_root: Path) -> None:
 
 
 def test_seeded_shuffle_is_a_permutation(data_root: Path) -> None:
-    ordered = [e.pitch_sequence for e in MelodyDataset(split="train", root=data_root)]
+    ordered = [
+        e.pitch_sequence for e in MelodyDataset(split="train", root=data_root)
+    ]
     shuffled = [
         e.pitch_sequence
         for e in MelodyDataset(
-            split="train", root=data_root, shuffle=True, shuffle_buffer_size=12, seed=1
+            split="train",
+            root=data_root,
+            shuffle=True,
+            shuffle_buffer_size=12,
+            seed=1,
         )
     ]
+
     assert sorted(shuffled) == sorted(ordered)
 
 
@@ -129,7 +144,10 @@ def test_shuffle_buffer_size_must_be_positive(data_root: Path) -> None:
 
 def test_attributes_survive_iteration(data_root: Path) -> None:
     example = next(iter(MelodyDataset(split="validation", root=data_root)))
-    assert example.attributes["note_density"] == pytest.approx(0.21875, abs=1e-6)
+
+    assert example.attributes["note_density"] == pytest.approx(
+        0.21875, abs=1e-6
+    )
     assert len(example.attributes) == 13
 
 
@@ -138,4 +156,5 @@ def test_default_root_can_be_overridden_by_env(
 ) -> None:
     monkeypatch.setenv(DATA_ROOT_ENV_VAR, str(data_root))
     dataset = MelodyDataset(split="test")
+
     assert len(list(dataset)) == 4
