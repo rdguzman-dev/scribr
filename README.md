@@ -176,7 +176,7 @@ flowchart TD
     click J "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/evaluation/metrics.py"
     click G "https://github.com/rdguzman-dev/scribr/blob/main/src/scrbir/midi/writer.py"
 
-    classDef clickable fill:#f5f5f5,stroke:#333,color:#000
+    classDef clickable fill:#1f2937,stroke:#6b7280,color:#f9fafb
     class A,B,C,F,H,I,K,J,G clickable
 ```
 
