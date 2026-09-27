@@ -47,10 +47,24 @@ data/raw/4-bars-monophonic/
 └── test/        # 8 shards, 22,265 melodies
 ```
 
+The dataset is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+**Dataset:** Pettenò, Matteo. *4 Bars Monophonic Melodies Dataset (Pitch
+Sequence)*. Zenodo, 2024. https://doi.org/10.5281/zenodo.13369389
+
+To download all the shards, run:
+
 ```bash
-uv run python scripts/download_dataset.py                # all splits (~713 MB)
-uv run python scripts/download_dataset.py --splits test  # test split (~1.7 MB)
+uv run python scripts/download_dataset.py  # all splits (~713 MB)
 ```
+
+To download the shards of a specific split, run:
+
+```bash
+uv run python scripts/download_dataset.py --splits <split>
+```
+
+Replace `<split>` with one of `train`, `validation`, or `test`.
 
 On macOS, if Python reports an `SSL: CERTIFICATE_VERIFY_FAILED` error when
 connecting to Zenodo, run the certificate installer bundled with the
@@ -64,18 +78,22 @@ Then retry the download command.
 
 Use `--dest` to extract somewhere else, then set `SCRIBR_DATA_ROOT` to that
 directory. Shards already on disk are skipped, and `--force` re-downloads
-them. The dataset is CC-BY-4.0.
+them.
 
 ### 3. Set up a SoundFont (synthesis only)
 
 Synthesis needs the FluidSynth system library and a General MIDI SoundFont
-(`.sf2` or `.sf3`). Install the library:
+(`.sf2` or `.sf3`).
+
+To install the library on macOS (using Homebrew), run:
 
 ```bash
-# macOS
 brew install fluid-synth
+```
 
-# Debian/Ubuntu
+To install the library on Debian/Ubuntu, run:
+
+```bash
 sudo apt install libfluidsynth3
 ```
 
@@ -188,11 +206,14 @@ dataset = MelodyDataset(
 multiple `DataLoader` workers the total can be larger than `max_examples`. The
 subset is drawn from the stored shard order, optionally shuffled. Both the
 subset and the shuffle are deterministic for a given seed, memory stays bounded
-by the buffer, and the official train/validation/test boundaries are always preserved.
+by the buffer, and the official train/validation/test boundaries are always
+preserved.
 
 ### Synthesis
 
-`Synthesizer` renders a `Melody` to a mono `float32` waveform in memory:
+`Synthesizer` renders a `Melody` to a mono `float32` waveform in memory. Audio is
+synthesized on demand from dataset melodies and is not distributed or stored by
+Scribr.
 
 ```python
 from scribr.data import MelodyDataset
