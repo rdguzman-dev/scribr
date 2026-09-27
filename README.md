@@ -137,12 +137,12 @@ uv run pytest -m integration
 
 ```text
 src/scribr/
-├── representation/  # Note, Melody, MelodyExample, pitch-sequence codec
-├── data/            # lazy TFRecord access (MelodyDataset)
-├── synthesis/       # Melody -> audio (Synthesizer)
-├── midi/            # Melody -> .mid (write_midi)
-├── transcription.py # Transcriber protocol (audio -> Melody)
-└── evaluation/      # mir_eval metrics (evaluate, evaluate_transcriber)
+├── representation/   # Note, Melody, MelodyExample, pitch-sequence codec
+├── data/             # lazy TFRecord access (MelodyDataset)
+├── synthesis/        # Melody -> audio (Synthesizer)
+├── midi/             # Melody -> .mid (write_midi)
+├── transcription.py  # Transcriber protocol (audio -> Melody)
+└── evaluation/       # mir_eval metrics (evaluate, evaluate_transcriber)
 scripts/download_dataset.py
 tests/
 ```
