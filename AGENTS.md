@@ -2,10 +2,10 @@
 
 ## Project
 
-Scribr is a CSC211H5 course project exploring different approaches
-(algorithmic, supervised deep learning, and LLM-based) to automated music
-transcription for quantized monophonic audio. Prioritize clarity, correctness,
-and understandability over unnecessary abstraction or cleverness.
+Scribr explores algorithmic, supervised deep learning, and LLM-based approaches
+to automated music transcription for quantized monophonic audio. Prioritize
+clarity, correctness, and understandability over unnecessary abstraction or
+cleverness.
 
 ## Code Style
 
