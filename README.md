@@ -166,15 +166,18 @@ flowchart TD
 
     style G stroke-dasharray: 5 5
 
-    click A "src/scribr/data/dataset.py"
-    click B "src/scribr/representation/melody.py"
-    click C "src/scribr/representation/melody.py"
-    click F "src/scribr/synthesis/synthesizer.py"
-    click H "src/scribr/transcription.py"
-    click I "src/scribr/representation/melody.py"
-    click K "src/scribr/representation/melody.py"
-    click J "src/scribr/evaluation/metrics.py"
-    click G "src/scrbir/midi/writer.py"
+    click A "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/data/dataset.py"
+    click B "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
+    click C "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
+    click F "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/synthesis/synthesizer.py"
+    click H "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/transcription.py"
+    click I "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
+    click K "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/representation/melody.py"
+    click J "https://github.com/rdguzman-dev/scribr/blob/main/src/scribr/evaluation/metrics.py"
+    click G "https://github.com/rdguzman-dev/scribr/blob/main/src/scrbir/midi/writer.py"
+
+    classDef clickable fill:#f5f5f5,stroke:#333,color:#000
+    class A,B,C,F,H,I,K,J,G clickable
 ```
 
 Every approach implements `Transcriber` and returns a `Melody`, so predictions
