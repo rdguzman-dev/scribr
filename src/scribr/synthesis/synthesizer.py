@@ -185,7 +185,8 @@ class Synthesizer:
         if not chunks:
             return np.zeros(0, dtype=np.float32)
 
-        # `get_smaples()` returns interleaved stereo signed-16-bit samples.
+        # FluidSynth returns interleaved stereo signed-16-bit samples.
+        # Convert to normalized float32 before any further processing.
         samples = np.concatenate(chunks).astype(np.float32) / _INT16_SCALE
 
         if samples.size % 2 != 0:
