@@ -5,6 +5,7 @@ The shared infrastructure includes:
 - `scribr.data`: lazy access to the TFRecord dataset.
 - `scribr.representation`: the canonical symbolic `Melody` type.
 - `scribr.midi`: optional MIDI export.
+- `scribr.wav`: optional WAV export of synthesized audio.
 - `scribr.synthesis`: on-demand FluidSynth audio rendering.
 - `scribr.transcription`: the `Transcriber` protocol shared by approaches.
 - `scribr.evaluation`: note-level metrics computed with `mir_eval`.
@@ -21,4 +22,7 @@ def main() -> None:
         "Scribr - automated music transcription for quantized monophonic "
         "audio."
     )
-    print("See README.md for dataset setup, synthesis, and MIDI export usage.")
+    print(
+        "See README.md for dataset setup, synthesis, and MIDI/WAV "
+        "export usage."
+    )
