@@ -52,6 +52,16 @@ uv run python scripts/download_dataset.py                # all splits (~713 MB)
 uv run python scripts/download_dataset.py --splits test  # test split (~1.7 MB)
 ```
 
+On macOS, if Python reports an `SSL: CERTIFICATE_VERIFY_FAILED` error when
+connecting to Zenodo, run the certificate installer bundled with the
+python.org Python installation:
+
+```bash
+open "/Applications/Python 3.13/Install Certificates.command"
+```
+
+Then retry the download command.
+
 Use `--dest` to extract somewhere else, then set `SCRIBR_DATA_ROOT` to that
 directory. Shards already on disk are skipped, and `--force` re-downloads
 them. The dataset is CC-BY-4.0.
@@ -74,7 +84,7 @@ Then download a SoundFont such as
 Scribr at it:
 
 ```bash
-export SCRIBR_SOUNDFONT=/path/to/GeneralUserGS.sf2
+export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
 ```
 
 `Synthesizer(soundfont_path=...)` also accepts a path directly. On macOS,
