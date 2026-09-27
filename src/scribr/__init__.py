@@ -1,11 +1,13 @@
 """Automated music transcription for quantized monophonic audio.
 
-The shared infrastructure lives in four subpackages:
+The shared infrastructure includes:
 
 - `scribr.data`: lazy access to the TFRecord dataset.
 - `scribr.representation`: the canonical symbolic `Melody` type.
 - `scribr.midi`: optional MIDI export.
 - `scribr.synthesis`: on-demand FluidSynth audio rendering.
+- `scribr.transcription`: the `Transcriber` protocol shared by approaches.
+- `scribr.evaluation`: note-level metrics computed with `mir_eval`.
 
 See `README.md` for setup and usage.
 """

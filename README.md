@@ -11,8 +11,12 @@ approaches, not the approaches themselves:
 - `scribr.data` streams the TFRecord dataset on demand.
 - `scribr.synthesis` renders a `Melody` to audio with FluidSynth.
 - `scribr.midi` exports a `Melody` to a Standard MIDI File.
+- `scribr.transcription` defines the `Transcriber` protocol that every
+  approach implements.
+- `scribr.evaluation` scores a transcription against a reference
+  `Melody` with `mir_eval`.
 
-There is no transcription approach or evaluator yet.
+There is no transcription approach yet.
 
 ## Setup
 
@@ -22,8 +26,8 @@ There is no transcription approach or evaluator yet.
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - FluidSynth and a General MIDI SoundFont (only for audio synthesis)
 
-`uv sync` installs PyTorch, numpy, mido, `tfrecord`, `pyfluidsynth`, and
-pytest. TensorFlow is not required.
+`uv sync` installs PyTorch, numpy, mido, `tfrecord`, `pyfluidsynth`,
+`mir_eval`, and pytest. TensorFlow is not required.
 
 ### 1. Install dependencies
 
@@ -136,7 +140,9 @@ src/scribr/
 ├── representation/  # Note, Melody, MelodyExample, pitch-sequence codec
 ├── data/            # lazy TFRecord access (MelodyDataset)
 ├── synthesis/       # Melody -> audio (Synthesizer)
-└── midi/            # Melody -> .mid (write_midi)
+├── midi/            # Melody -> .mid (write_midi)
+├── transcription.py # Transcriber protocol (audio -> Melody)
+└── evaluation/      # mir_eval metrics (evaluate, evaluate_transcriber)
 scripts/download_dataset.py
 tests/
 ```
@@ -153,10 +159,14 @@ MelodyExample ──► Melody  (canonical symbolic type)
           ▼                       ▼
    scribr.synthesis          scribr.midi
    Melody ──► audio          Melody ──► .mid
+
+audio ──► Transcriber ──► estimated Melody ──┐
+                                             ├──► scribr.evaluation ──► metrics
+reference Melody ────────────────────────────┘
 ```
 
-Future transcription approaches take audio and return a `Melody`, so
-predictions and ground truth share one type.
+Every approach implements `Transcriber` and returns a `Melody`, so predictions
+and ground truth share one type.
 
 The canonical in-memory transcription is a symbolic `Melody`, not a MIDI file
 or a pitch-sequence token list. Time is measured in quarter-note beats from
@@ -235,7 +245,7 @@ and `midi_channel` are constructor arguments.
 
 ### MIDI export
 
-MIDI is an export format only. Nothing in the dataset, synthesis, or future
+MIDI is an export format only. Nothing in the dataset, synthesis, or
 evaluation path reads it. `write_midi` writes one monophonic track:
 
 ```python
@@ -254,35 +264,87 @@ At the default 480 ticks per beat, one dataset step is 120 ticks. Adjacent
 notes with the same pitch are released before being re-attacked, so repeated
 pitches stay separate notes instead of merging.
 
-### Future approaches
+### Transcription approaches
 
-A transcription approach has the signature `audio -> Melody`. Evaluation can
-compare its output to `MelodyExample.melody` directly, since both are the same
-type in the same units:
+No transcription approach is implemented yet. Each one implements
+`Transcriber` and returns the canonical `Melody`:
 
 ```python
 import numpy as np
 
-from scribr.data import MelodyDataset
 from scribr.representation import Melody
-from scribr.synthesis import Synthesizer
 
 
-def transcribe(audio: np.ndarray, sample_rate: int) -> Melody:
-    raise NotImplementedError("human / algorithmic / DL / LLM approach")
-
-
-dataset = MelodyDataset(split="validation", max_examples=100)
-synthesizer = Synthesizer()
-
-for example in dataset:
-    audio = synthesizer.synthesize(example.melody)
-    prediction = transcribe(audio, synthesizer.sample_rate)
-    reference = example.melody
+class MyTranscriber:
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        sample_rate: int,
+        tempo: float,
+    ) -> Melody:
+        raise NotImplementedError("algorithmic / DL / LLM approach")
 ```
 
-Each `Note` provides the `(pitch, onset, offset)` information needed by
-note-level metrics such as those in `mir_eval`.
+The harness passes raw `Synthesizer.synthesize` output, `sample_rate` in Hz,
+and the `tempo` in BPM the audio was rendered at. Any resampling,
+normalization, or feature extraction is the approach's business. The returned
+`Melody` uses quarter-note beats measured from the first audio sample, the
+same convention as the dataset. An empty `Melody` is a valid transcription of
+silence.
+
+Approaches don't need to quantize to the dataset's 16th-note grid. `mir_eval`
+matches onsets within a tolerance, so near-grid timings still score, and a
+model that predicts a pitch sequence can decode it with
+`decode_pitch_sequence` before returning.
+
+### Evaluation
+
+`evaluate` scores one prediction against one reference. `evaluate_transcriber`
+synthesizes each reference melody, runs an approach, and averages the metrics:
+
+```python
+from scribr.data import MelodyDataset
+from scribr.evaluation import evaluate, evaluate_transcriber
+from scribr.synthesis import Synthesizer
+
+synthesizer = Synthesizer()
+dataset = MelodyDataset(split="validation", max_examples=100)
+
+report = evaluate_transcriber(MyTranscriber(), dataset, synthesizer)
+print(report.num_examples, report.metrics["F-measure_no_offset"])
+```
+
+For a single example:
+
+```python
+example = next(iter(dataset))
+audio = synthesizer.synthesize(example.melody)
+estimate = MyTranscriber().transcribe(
+    audio, synthesizer.sample_rate, synthesizer.tempo
+)
+scores = evaluate(example.melody, estimate, tempo=synthesizer.tempo)
+```
+
+The metrics mirror `mir_eval.transcription.evaluate`:
+
+- `Precision`, `Recall`, `F-measure`: onset, pitch, and offset must match.
+- `*_no_offset`: onset and pitch must match, offsets are ignored.
+- `Onset_*`: only onsets are compared.
+- `Offset_*`: only offsets are compared.
+
+Defaults are 50 ms onset tolerance, 50 cents pitch tolerance, and an offset
+tolerance of 20% of the reference note duration (with a 50 ms floor). All are
+function arguments. `melody_to_mir_eval` converts beats to seconds and MIDI
+numbers to Hertz for `mir_eval`; skipping the Hertz conversion would make a
+semitone look like 28.6 cents instead of 100.
+
+`evaluate_transcriber` averages each metric across examples, so every example
+weighs the same regardless of note count. Silent examples score 0 because
+`mir_eval` defines the metrics that way; filter them out beforehand if that
+skews a comparison. Synthesis also adds a release tail after the last
+note-off, and piano releases bleed across short notes, so offsets detected
+from audio are fuzzy. Compare approaches on `F-measure_no_offset` first and
+treat the offset-aware numbers as a secondary signal.
 
 ## Tests
 
