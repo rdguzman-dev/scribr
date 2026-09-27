@@ -46,7 +46,7 @@ class Synthesizer:
         soundfont_path: Path to a General MIDI SoundFont. If `None`,
             falls back to `SCRIBR_SOUNDFONT`.
         sample_rate: Output sample rate in Hz.
-        tempo: Tempo (in BPM) used to convert beat-based note times to
+        tempo: Tempo in BPM used to convert beat-based note times to
             seconds.
         program: Zero-based General MIDI program number (`0` = Acoustic
             Grand Piano).

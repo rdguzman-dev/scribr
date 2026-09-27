@@ -29,7 +29,7 @@ class MidiExportConfig:
     """Configuration for `melody_to_midi` and `write_midi`.
 
     Attributes:
-        tempo: Tempo (in BPM) written as a `set_tempo` meta message.
+        tempo: Tempo in BPM written as a `set_tempo` meta message.
         program: General MIDI program number (`0` = Acoustic Grand
             Piano).
         channel: MIDI channel in the range `[0, 15]`.
