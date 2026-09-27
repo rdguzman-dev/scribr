@@ -18,6 +18,7 @@ from .melody import (
     MelodyExample,
     Note,
 )
+from .text import melody_from_text
 
 __all__ = [
     "DATASET_MAX_PITCH",
@@ -34,4 +35,5 @@ __all__ = [
     "Note",
     "decode_pitch_sequence",
     "encode_pitch_sequence",
+    "melody_from_text",
 ]
