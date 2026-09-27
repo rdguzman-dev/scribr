@@ -176,7 +176,9 @@ class MelodyDataset(IterableDataset):
 
         if self.shuffle:
             return shuffle_buffer(
-                stream, buffer_size=self.shuffle_buffer_size, seed=self.seed
+                stream,
+                buffer_size=self.shuffle_buffer_size,
+                seed=self.seed,
             )
 
         return stream
