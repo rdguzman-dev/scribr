@@ -1,0 +1,22 @@
+{
+  "experiment": "human_baseline",
+  "dataset": {
+    "split": "test",
+    "prefix_size": 1000,
+    "sample_size": 20,
+    "seed": 42
+  },
+  "instruments": [
+    "piano",
+    "acoustic_guitar",
+    "electric_guitar",
+    "violin"
+  ],
+  "synthesis": {
+    "sample_rate": 22050,
+    "tempo": 120.0,
+    "velocity": 80,
+    "gain": 1.0,
+    "release_tail_seconds": 0.5
+  }
+}

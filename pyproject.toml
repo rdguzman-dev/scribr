@@ -29,6 +29,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = [
     "integration: requires a system FluidSynth install and a SoundFont (set SCRIBR_SOUNDFONT)",
 ]
