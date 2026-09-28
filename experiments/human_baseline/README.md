@@ -34,17 +34,16 @@ artifacts/
 Running it again reuses the existing manifest; `--force` rebuilds
 everything. The manifest records the config, the sampled candidate indices,
 and file hashes. It holds no timestamps or filesystem paths, so the same
-inputs always produce the same file. The WAV directory is gitignored; the
+inputs always produce the same files. The WAV directory is gitignored; the
 references, manifest, and transcriptions are committed.
 
 ## Transcribe
 
-To create the human transcription, the human should listen to each file in
-`artifacts/wav/` and record the notes they hear in
-`transcriptions/<id>.txt`, using the ID from the manifest (for example
-`000-piano.txt`).
+Each file in `artifacts/wav/` was transcribed manually by listening to the
+audio and recording the notes heard in `transcriptions/<id>.txt`, using the ID
+from the manifest (for example, `000-piano.txt`).
 
-Each transcription should use one note per row in the following format:
+Each transcription uses one note per row in the following format:
 
 ```text
 <pitch>, <onset>, <offset>
@@ -61,17 +60,60 @@ G4, 1.0, 2.0
 Each row represents one note, with its pitch, onset, and offset. Pitches use
 scientific notation (`C4` is MIDI 60), and sharps and flats both parse. Onset
 and offset are quarter-note beats from the start of the WAV. The header row is
-optional. The human does not have to align times to the 0.25-beat grid.
-Scoring uses the times exactly as written and reports how many rows fall off
-the grid.
+optional. Times do not have to be aligned to the 0.25-beat grid. Scoring uses
+the times exactly as written and reports how many rows fall off the grid.
 
-The human should not open `artifacts/reference/`. Those note tables are the
-ground truth, and reading them would defeat the experiment.
+### Transcription setup
 
-The instrument release tail should be ignored. A struck or bowed note may
-continue sounding after its notated offset, but a fading tail should not be
-transcribed as a new note. The transcription should represent the attacks
-that are heard, not the decay.
+The transcription was performed in GarageBand. A digital synthesizer capable of
+emulating piano, acoustic guitar, electric guitar, and violin was available as a
+reference instrument for identifying pitches by ear and using relative pitch.
+
+Ordinary audio-inspection tools were permitted. The waveform could be
+zoomed, navigated, looped, and segmented into smaller regions to make
+difficult passages easier to hear. The timing ruler could also be used to
+estimate note onsets and offsets. These tools were used to inspect and
+navigate the audio, not to automatically extract musical information.
+
+Automatic transcription or note-extraction tools were not used. In particular,
+automatic pitch detection, onset or offset detection, MIDI transcription,
+and other tools that directly infer note identities or timings from the audio
+were prohibited.
+
+The reference note tables in `artifacts/reference/` were not opened during
+transcription. Those tables contain the ground truth, and reading them would
+defeat the experiment.
+
+The instrument release tail was ignored. A struck or bowed note may continue
+sounding after its notated offset, but a fading tail was not transcribed as a
+new note. The transcription represents the attacks that are heard, not the
+decay.
+
+### Timing log
+
+The time spent on each transcription was recorded in `timing.csv`, one row
+per example. The log is kept separate from the note tables in
+`transcriptions/`, and the scoring pipeline does not read it.
+
+Columns:
+
+* `id`: example ID exactly as it appears in `transcriptions/` and the
+  manifest (for example `000-piano`).
+* `datetime`: date and time the transcription was started, in
+  `YYYY-MM-DD HH:MM:SS` format.
+* `duration_seconds`: how long the transcription took, recorded in seconds.
+  Second-level precision is sufficient; small differences from the actual
+  elapsed time are not meaningful.
+* `notes`: optional free text for anything that explains outside influences
+  or possible anomalies that affected the transcription time or accuracy
+  (for example, being sick). Leave blank when nothing applies. Quote the
+  field if it contains a comma.
+
+An example row:
+
+```text
+001-acoustic_guitar,2026-09-28 18:00:00,2520,had a cold
+```
 
 ## Score
 
