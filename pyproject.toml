@@ -5,6 +5,7 @@ description = "Automated music transcription for quantized monophonic audio."
 readme = "README.md"
 authors = [
     { name = "Ricardo D. Guzman", email = "rdguzman.dev@gmail.com" },
+    { name = "Sharayh Badar", email = "sharayhbadar@gmail.com"}
 ]
 requires-python = ">=3.13"
 dependencies = [
