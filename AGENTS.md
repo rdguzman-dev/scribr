@@ -18,8 +18,6 @@ cleverness.
 - Private helpers generally do not need docstrings unless their behavior
   is non-obvious or there is an important implementation detail to explain.
 - Use backticks for Python identifiers in prose and docstrings.
-- Do not add `Args:`, `Returns:`, or `Raises:` sections when they merely
-  repeat information already apparent from the signature.
 - For anything not listed above, default to the PEP 8 guidelines.
 
 ## Architecture
