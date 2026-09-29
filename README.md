@@ -136,6 +136,13 @@ uv run pytest -m integration
 ### Package layout
 
 ```text
+experiments/
+├── common/           # shared experiment specs, materialization, evaluation
+├── human_baseline/   # human transcription baseline
+├── algorithmic/      # algorithmic transcription experiments
+├── deep_learning/    # supervised deep learning experiments
+└── llm/              # LLM-based transcription experiments
+scripts/download_dataset.py
 src/scribr/
 ├── representation/   # Note, Melody, MelodyExample, pitch-sequence codec
 ├── data/             # lazy TFRecord access (MelodyDataset)
@@ -144,7 +151,6 @@ src/scribr/
 ├── wav/              # audio -> .wav (write_wav)
 ├── transcription.py  # Transcriber protocol (audio -> Melody)
 └── evaluation/       # mir_eval metrics (evaluate, evaluate_transcriber)
-scripts/download_dataset.py
 tests/
 ```
 
