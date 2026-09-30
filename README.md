@@ -137,20 +137,24 @@ uv run pytest -m integration
 
 ```text
 experiments/
-├── common/           # shared experiment specs, materialization, evaluation
-├── human_baseline/   # human transcription baseline
-├── algorithmic/      # algorithmic transcription experiments
-├── deep_learning/    # supervised deep learning experiments
-└── llm/              # LLM-based transcription experiments
-scripts/download_dataset.py
+├── algorithmic/         # algorithmic transcription experiments
+├── common/              # shared experiment specs, materialization, evaluation
+├── deep_learning/       # supervised deep learning experiments
+├── human_baseline/      # human transcription baseline
+└── llm/                 # LLM-based transcription experiments
+scripts/
+└── download_dataset.py  # TFRecord shards download
 src/scribr/
-├── representation/   # Note, Melody, MelodyExample, pitch-sequence codec
-├── data/             # lazy TFRecord access (MelodyDataset)
-├── synthesis/        # Melody -> audio (Synthesizer)
-├── midi/             # Melody -> .mid (write_midi)
-├── wav/              # audio -> .wav (write_wav)
-├── transcription.py  # Transcriber protocol (audio -> Melody)
-└── evaluation/       # mir_eval metrics (evaluate, evaluate_transcriber)
+├── algorithmic/         # algorithmic transcription approach
+├── data/                # lazy TFRecord access (MelodyDataset)
+├── deep_learning/       # supervised deep learning approach
+├── evaluation/          # mir_eval metrics (evaluate, evaluate_transcriber)
+├── llm/                 # LLM-based approach
+├── midi/                # Melody -> .mid (write_midi)
+├── representation/      # Note, Melody, MelodyExample, pitch-sequence codec
+├── synthesis/           # Melody -> audio (Synthesizer)
+├── wav/                 # audio -> .wav (write_wav)
+└── transcription.py     # Transcriber protocol (audio -> Melody)
 tests/
 ```
 
