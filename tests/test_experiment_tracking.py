@@ -7,6 +7,7 @@ from pathlib import Path
 from mlflow.tracking import MlflowClient
 
 from experiments.common.tracking import (
+    git_metadata,
     log_artifact,
     log_metrics,
     log_params,
@@ -65,3 +66,11 @@ def test_run_records_params_metrics_and_artifacts(tmp_path: Path) -> None:
 
     downloaded = client.download_artifacts(run.info.run_id, "checkpoint.pt")
     assert Path(downloaded).read_bytes() == b"weights"
+
+
+def test_git_metadata_describes_the_checkout() -> None:
+    metadata = git_metadata()
+
+    assert set(metadata) == {"git.commit", "git.dirty"}
+    assert metadata["git.commit"] != ""
+    assert metadata["git.dirty"] in {"true", "false", "unknown"}
