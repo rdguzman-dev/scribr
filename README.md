@@ -3,13 +3,15 @@
 Scribr explores algorithmic, supervised deep learning, and LLM-based
 approaches to automated music transcription for quantized monophonic audio.
 
-The repository currently contains the shared infrastructure for these
-approaches, not the approaches themselves:
+The repository contains the shared infrastructure and a first
+supervised deep learning approach:
 
 - `scribr.representation` defines the canonical `Note`, `Melody`, and
   `MelodyExample` types and the dataset pitch-sequence codec.
 - `scribr.data` streams the TFRecord dataset on demand.
 - `scribr.synthesis` renders a `Melody` to audio with FluidSynth.
+- `scribr.deep_learning` trains a log-mel CNN to predict the dataset's
+  pitch sequence and exposes it through `Transcriber`.
 - `scribr.midi` exports a `Melody` to a Standard MIDI File.
 - `scribr.wav` saves synthesized audio to a WAV file.
 - `scribr.transcription` defines the `Transcriber` protocol that every
@@ -17,7 +19,7 @@ approaches, not the approaches themselves:
 - `scribr.evaluation` scores a transcription against a reference
   `Melody` with `mir_eval`.
 
-There are no implemented transcription approaches yet.
+The algorithmic and LLM approaches are not implemented yet.
 
 ## Setup
 
@@ -27,8 +29,9 @@ There are no implemented transcription approaches yet.
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - FluidSynth and a General MIDI SoundFont (only for audio synthesis)
 
-`uv sync` installs PyTorch, `numpy`, `mido`, `tfrecord`, `pyfluidsynth`,
-`mir_eval`, and `pytest`. TensorFlow is not required.
+`uv sync` installs PyTorch, `torchaudio`, `numpy`, `mido`, `tfrecord`,
+`pyfluidsynth`, `mir_eval`, `pytest`, and MLflow. TensorFlow is not
+required.
 
 ### 1. Install dependencies
 
@@ -322,8 +325,13 @@ pitches stay separate notes instead of merging.
 
 ### Transcription approaches
 
-No transcription approach is implemented yet. Each one should implement
-`Transcriber` and return the canonical `Melody`:
+The supervised deep learning approach is implemented.
+`DeepLearningTranscriber` predicts one pitch-sequence token per dataset
+step and decodes it to a `Melody`. Training and evaluation live in
+[`experiments/deep_learning/logmel_cnn`](experiments/deep_learning/logmel_cnn/README.md).
+The algorithmic and LLM approaches are not implemented yet. Each new
+approach should implement `Transcriber` and return the canonical
+`Melody`:
 
 ```python
 import numpy as np

@@ -1,0 +1,55 @@
+{
+  "name": "logmel_cnn",
+  "instrument": "piano",
+  "evaluation_instruments": [
+    "piano",
+    "acoustic_guitar",
+    "electric_guitar",
+    "violin"
+  ],
+  "dataset": {
+    "split": "train",
+    "max_examples": 10000,
+    "num_workers": 4
+  },
+  "validation": {
+    "split": "validation",
+    "max_examples": 1000,
+    "num_workers": 4
+  },
+  "synthesis": {
+    "sample_rate": 22050,
+    "tempo": 120.0,
+    "velocity": 80,
+    "gain": 1.0,
+    "release_tail_seconds": 0.5
+  },
+  "features": {
+    "sample_rate": 22050,
+    "n_fft": 2048,
+    "hop_length": 256,
+    "n_mels": 128,
+    "f_min": 27.5,
+    "f_max": 8000.0,
+    "top_db": 80.0,
+    "num_frames": 736
+  },
+  "model": {
+    "channels": [32, 64, 128, 256],
+    "dropout": 0.1
+  },
+  "optimization": {
+    "seed": 42,
+    "batch_size": 64,
+    "epochs": 30,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "min_learning_rate": 0.0001,
+    "gradient_clip": 5.0,
+    "log_every_steps": 50,
+    "metric_examples": 128,
+    "metric_interval": 1,
+    "class_weights": true,
+    "device": "auto"
+  }
+}
