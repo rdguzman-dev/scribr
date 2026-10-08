@@ -15,3 +15,5 @@ data/raw/
 data/soundfonts/
 outputs/
 experiments/human_baseline/artifacts/wav/
+mlruns/
+experiments/deep_learning/*/artifacts/
