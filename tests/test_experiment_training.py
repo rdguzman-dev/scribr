@@ -15,6 +15,13 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from experiments.common.spec import SynthesisSpec
+from experiments.deep_learning.logmel_cnn.ablation import (
+    AblationArm,
+    ArmResult,
+    _winner,
+    run_ablation,
+    write_ablation_report,
+)
 from experiments.deep_learning.logmel_cnn.data import (
     build_features,
     build_model,
@@ -428,3 +435,77 @@ def test_run_evaluation_writes_reports(
     assert markdown_path.read_text(encoding="utf-8").startswith(
         "# test_run report (test)"
     )
+
+
+def _arm_result(name: str, score: float) -> ArmResult:
+    return ArmResult(
+        arm=AblationArm(name=name, power=0.5),
+        run_name=name,
+        artifacts_dir=name,
+        best_epoch=1,
+        best_score=score,
+        epoch_scores=((1, score),),
+    )
+
+
+def test_ablation_winner_reports_higher_score_and_ties() -> None:
+    inverse = _arm_result("inverse", 0.2)
+    tempered = _arm_result("tempered", 0.3)
+
+    assert _winner((inverse, tempered)) == "tempered"
+    assert _winner((inverse, _arm_result("tempered", 0.2))) == "tie"
+
+
+def test_run_ablation_trains_both_arms_and_writes_report(
+    tmp_path: Path,
+    data_root: Path,
+) -> None:
+    config = tiny_config()
+    ablation_dir = tmp_path / "ablation"
+
+    result = run_ablation(
+        config,
+        artifacts_dir=ablation_dir,
+        run_name="ab",
+        tracking_uri=tmp_path / "mlflow.db",
+        data_root=data_root,
+        device="cpu",
+        synthesizer_factory=fake_factory,
+    )
+
+    assert [arm.arm.name for arm in result.arms] == ["inverse", "tempered"]
+    assert [arm.arm.power for arm in result.arms] == [1.0, 0.5]
+    assert result.metric == "piano/F-measure_no_offset"
+    assert result.winner in {"inverse", "tempered", "tie"}
+    assert result.scores == {
+        arm.arm.name: arm.best_score for arm in result.arms
+    }
+
+    for arm_result in result.arms:
+        payload = torch.load(
+            Path(arm_result.artifacts_dir) / "best.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+        arm_config = payload["config"]
+
+        assert arm_result.epoch_scores
+        assert (
+            arm_config["optimization"]["class_weight_power"]
+            == arm_result.arm.power
+        )
+        assert arm_config["optimization"]["primary_instrument"] == "piano"
+
+    json_path, markdown_path = write_ablation_report(
+        result,
+        artifacts_dir=ablation_dir,
+        config=config,
+    )
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    markdown = markdown_path.read_text(encoding="utf-8")
+
+    assert data["primary_metric"] == "piano/F-measure_no_offset"
+    assert [arm["name"] for arm in data["arms"]] == ["inverse", "tempered"]
+    assert data["winner"] == result.winner
+    assert "Winner:" in markdown
+    assert "| Epoch | inverse | tempered |" in markdown
