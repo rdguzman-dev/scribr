@@ -154,6 +154,16 @@ def evaluate_predictions(
     )
 
 
+def group_counts(evaluation: ExperimentEvaluation) -> dict[str, int]:
+    """Return the number of evaluated examples per group."""
+    counts: dict[str, int] = {}
+
+    for example in evaluation.per_example:
+        counts[example.group] = counts.get(example.group, 0) + 1
+
+    return counts
+
+
 def _on_grid(time: float) -> bool:
     steps = time * STEPS_PER_QUARTER_NOTE
 

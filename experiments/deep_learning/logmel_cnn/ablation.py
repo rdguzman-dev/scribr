@@ -26,6 +26,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
+from experiments.common.markdown import markdown_table
 from experiments.common.tracking import (
     DEFAULT_TRACKING_URI,
     git_metadata,
@@ -317,7 +318,7 @@ def _markdown(
         "",
         "## Metadata",
         "",
-        _markdown_table(
+        markdown_table(
             ("Field", "Value"),
             (
                 ("Run", result.run_name),
@@ -334,7 +335,7 @@ def _markdown(
         "",
         "## Summary",
         "",
-        _markdown_table(
+        markdown_table(
             ("Arm", "Power", "Best epoch", "Best score"),
             tuple(
                 (
@@ -379,22 +380,7 @@ def _score_table(result: AblationResult) -> str:
 
         rows.append(tuple(row))
 
-    return _markdown_table(("Epoch", *names), rows)
-
-
-def _markdown_table(
-    headers: Sequence[str],
-    rows: Sequence[Sequence[str]],
-) -> str:
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "| " + " | ".join("---" for _ in headers) + " |",
-    ]
-
-    for row in rows:
-        lines.append("| " + " | ".join(row) + " |")
-
-    return "\n".join(lines)
+    return markdown_table(("Epoch", *names), rows)
 
 
 def main() -> None:

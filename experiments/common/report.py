@@ -7,12 +7,13 @@ import json
 import os
 import platform
 import subprocess
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 from scribr.synthesis import SOUNDFONT_ENV_VAR
 
-from .evaluation import ExperimentEvaluation
+from .evaluation import ExperimentEvaluation, group_counts
+from .markdown import display, format_score, markdown_table
 from .materialize import Manifest
 from .predictions import TextPredictions
 
@@ -73,7 +74,7 @@ def _report_dict(
     predictions: TextPredictions,
     soundfont_path: str | Path | None,
 ) -> dict:
-    group_counts = _group_counts(evaluation)
+    counts = group_counts(evaluation)
     package_versions = {
         name: _package_version(name) for name in ("scribr", "mir_eval")
     }
@@ -82,7 +83,7 @@ def _report_dict(
         "experiment": manifest.experiment,
         "soundfont_sha256": manifest.soundfont_sha256,
         "metadata": {
-            "git_commit": _git_commit(),
+            "git_commit": git_commit(),
             "python_version": platform.python_version(),
             "package_versions": package_versions,
             "soundfont_path": _resolved_soundfont(soundfont_path),
@@ -93,7 +94,7 @@ def _report_dict(
         "overall": dict(evaluation.metrics),
         "per_instrument": {
             group: {
-                "num_examples": group_counts[group],
+                "num_examples": counts[group],
                 "metrics": dict(metrics),
             }
             for group, metrics in evaluation.grouped_metrics.items()
@@ -126,15 +127,15 @@ def _markdown(data: Mapping) -> str:
         "",
         "## Metadata",
         "",
-        _markdown_table(
+        markdown_table(
             ("Field", "Value"),
             (
-                ("Git commit", _display(metadata["git_commit"])),
+                ("Git commit", display(metadata["git_commit"])),
                 ("Python", metadata["python_version"]),
-                ("scribr", _display(metadata["package_versions"]["scribr"])),
+                ("scribr", display(metadata["package_versions"]["scribr"])),
                 (
                     "mir_eval",
-                    _display(metadata["package_versions"]["mir_eval"]),
+                    display(metadata["package_versions"]["mir_eval"]),
                 ),
                 ("Tempo (BPM)", str(tempo)),
                 (
@@ -145,20 +146,20 @@ def _markdown(data: Mapping) -> str:
                     "Pitch tolerance (cents)",
                     str(options["pitch_tolerance"]),
                 ),
-                ("Offset ratio", _display(options["offset_ratio"])),
+                ("Offset ratio", display(options["offset_ratio"])),
                 (
                     "Offset min tolerance (s)",
                     str(options["offset_min_tolerance"]),
                 ),
-                ("SoundFont SHA-256", _display(data["soundfont_sha256"])),
-                ("SoundFont path", _display(metadata["soundfont_path"])),
+                ("SoundFont SHA-256", display(data["soundfont_sha256"])),
+                ("SoundFont path", display(metadata["soundfont_path"])),
                 ("Examples evaluated", str(metadata["num_examples"])),
             ),
         ),
         "",
         "## Overall metrics",
         "",
-        _metric_table(data["overall"]),
+        metric_table(data["overall"]),
         "",
         _RELEASE_TAIL_NOTE,
         "",
@@ -174,27 +175,27 @@ def _markdown(data: Mapping) -> str:
         per_instrument_rows.append(
             (instrument, str(entry["num_examples"]))
             + tuple(
-                _format_score(metrics.get(name))
-                for name in _ordered_metrics(metrics)
+                format_score(metrics.get(name))
+                for name in ordered_metrics(metrics)
             )
         )
 
     lines.extend(
         [
-            _markdown_table(
+            markdown_table(
                 (
                     ("Instrument", "N")
-                    + _metric_headers(data["per_instrument"].values())
+                    + metric_headers(data["per_instrument"].values())
                 ),
                 per_instrument_rows,
             ),
             "",
             "## Examples",
             "",
-            _markdown_table(
+            markdown_table(
                 (
                     ("Example", "Instrument")
-                    + _metric_headers(data["examples"])
+                    + metric_headers(data["examples"])
                     + ("Off-grid onsets", "Off-grid offsets")
                 ),
                 tuple(
@@ -203,8 +204,8 @@ def _markdown(data: Mapping) -> str:
                         example["instrument"],
                     )
                     + tuple(
-                        _format_score(example["metrics"].get(name))
-                        for name in _ordered_metrics(example["metrics"])
+                        format_score(example["metrics"].get(name))
+                        for name in ordered_metrics(example["metrics"])
                     )
                     + (
                         str(example["off_grid_onsets"]),
@@ -243,24 +244,26 @@ def _markdown(data: Mapping) -> str:
     return "\n".join(lines)
 
 
-def _metric_headers(entries: Iterable[Mapping]) -> tuple[str, ...]:
+def metric_headers(entries: Iterable[Mapping]) -> tuple[str, ...]:
+    """Return the metric names across `entries`, in display order."""
     metrics: dict[str, float] = {}
 
     for entry in entries:
         metrics.update(entry["metrics"])
 
-    return tuple(_ordered_metrics(metrics))
+    return tuple(ordered_metrics(metrics))
 
 
-def _metric_table(metrics: Mapping[str, float]) -> str:
+def metric_table(metrics: Mapping[str, float]) -> str:
+    """Render overall metrics as a two-column table."""
     if not metrics:
         return "No examples were evaluated."
 
-    return _markdown_table(
+    return markdown_table(
         ("Metric", "Score"),
         tuple(
-            (name, _format_score(metrics[name]))
-            for name in _ordered_metrics(metrics)
+            (name, format_score(metrics[name]))
+            for name in ordered_metrics(metrics)
         ),
     )
 
@@ -285,50 +288,20 @@ def _group_count_line(per_instrument: Mapping) -> str:
     return "Per-instrument means are based on varying example counts."
 
 
-def _ordered_metrics(metrics: Mapping[str, float]) -> list[str]:
+def ordered_metrics(metrics: Mapping[str, float]) -> list[str]:
+    """Order metric names for display, with unknown names last."""
     ordered = [name for name in _METRIC_ORDER if name in metrics]
     ordered.extend(name for name in metrics if name not in _METRIC_ORDER)
 
     return ordered
 
 
-def _markdown_table(
-    headers: Sequence[str],
-    rows: Iterable[Sequence[str]],
-) -> str:
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "| " + " | ".join("---" for _ in headers) + " |",
-    ]
-
-    for row in rows:
-        lines.append("| " + " | ".join(row) + " |")
-
-    return "\n".join(lines)
-
-
-def _format_score(value: float | None) -> str:
-    return "" if value is None else f"{value:.4f}"
-
-
 def _report_title(experiment: str) -> str:
     return experiment.replace("_", " ").strip().capitalize()
 
 
-def _display(value: object | None) -> str:
-    return "n/a" if value is None else str(value)
-
-
-def _group_counts(evaluation: ExperimentEvaluation) -> dict[str, int]:
-    counts: dict[str, int] = {}
-
-    for example in evaluation.per_example:
-        counts[example.group] = counts.get(example.group, 0) + 1
-
-    return counts
-
-
-def _git_commit() -> str | None:
+def git_commit() -> str | None:
+    """Return the current git commit, or `None` when unavailable."""
     repository = Path(__file__).resolve().parents[2]
 
     try:
