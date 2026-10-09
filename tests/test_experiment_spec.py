@@ -27,7 +27,7 @@ def test_committed_config_loads() -> None:
 
     assert spec.experiment == "human_baseline"
     assert spec.dataset == DatasetSpec(
-        split="test", prefix_size=1000, sample_size=20, seed=42
+        split="test", prefix_size=1000, sample_size=20
     )
     assert spec.instruments == (
         Instrument.PIANO,

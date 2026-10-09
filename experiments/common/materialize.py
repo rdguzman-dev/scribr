@@ -1,7 +1,7 @@
 """Materialize a reproducible set of audio and reference artifacts.
 
 Materialization renders one WAV file and one reference note table per
-sampled dataset example and records both in a deterministic manifest.
+selected dataset example and records both in a deterministic manifest.
 The manifest is the entry point for later scoring: it maps stable
 example IDs to files and hashes without embedding absolute paths or
 environment-specific metadata.
@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import random
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import islice
@@ -26,7 +25,9 @@ from scribr.wav import write_wav
 from .spec import ExperimentSpec
 from .synthesis import SynthesizerFactory, resolve_soundfont_path
 
-SCHEMA_VERSION = 1
+# Version 2 selects the leading candidates instead of a seeded random
+# draw and drops `seed` from the dataset config.
+SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,7 +36,7 @@ class ManifestExample:
 
     Attributes:
         id: Stable example ID, `<sample index>-<instrument>`.
-        index: Position in the sampled order.
+        index: Position in the selection order.
         candidate_index: Position in the candidate prefix.
         instrument: Instrument the example was rendered with.
         program: General MIDI program number of the instrument.
@@ -153,16 +154,16 @@ def materialize(
     soundfont_path: str | Path | None = None,
     force: bool = False,
 ) -> Manifest:
-    """Render each sampled example to a WAV and a reference note table.
+    """Render each selected example to a WAV and a reference note table.
 
     Experiments should use `spec` for configuration. The keyword-only
     parameters are intended for testing, dependecy injection, and other
     advanced use cases.
 
     An existing manifest is reused when it matches `spec`; pass
-    `force=True` to rebuild the artifacts. Sampling uses
-    `random.Random(spec.dataset.seed).sample` over the candidate prefix,
-    so identical inputs always produce identical artifacts.
+    `force=True` to rebuild the artifacts. Selection takes the first
+    `spec.dataset.sample_size` records of the candidate prefix, so
+    identical inputs always produce identical artifacts.
 
     Args:
         spec: Experiment configuration.
@@ -216,11 +217,8 @@ def materialize(
             f"sample_size is {spec.dataset.sample_size}"
         )
 
-    # Sample positions so the manifest can record where each example
-    # came from in the candidate prefix.
-    chosen_indices = random.Random(spec.dataset.seed).sample(
-        range(len(candidates)), spec.dataset.sample_size
-    )
+    # Record where each example came from in the candidate prefix.
+    chosen_indices = range(spec.dataset.sample_size)
 
     if synthesizers is None:
         resolved_soundfont = resolve_soundfont_path(soundfont_path)
