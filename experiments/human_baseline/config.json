@@ -3,8 +3,7 @@
   "dataset": {
     "split": "test",
     "prefix_size": 1000,
-    "sample_size": 20,
-    "seed": 42
+    "sample_size": 20
   },
   "instruments": [
     "piano",

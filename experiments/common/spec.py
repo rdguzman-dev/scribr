@@ -25,14 +25,12 @@ class DatasetSpec:
     Attributes:
         split: Dataset split to draw from.
         prefix_size: Number of leading records treated as candidates.
-        sample_size: Number of examples to select from the candidates.
-        seed: Seed for the deterministic candidate draw.
+        sample_size: Number of leading candidates to select.
     """
 
     split: str = "test"
     prefix_size: int = 1000
     sample_size: int = 20
-    seed: int = 42
 
     def __post_init__(self) -> None:
         if self.split not in SPLITS:
@@ -54,7 +52,6 @@ class DatasetSpec:
             split=data["split"],
             prefix_size=data["prefix_size"],
             sample_size=data["sample_size"],
-            seed=data["seed"],
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -63,7 +60,6 @@ class DatasetSpec:
             "split": self.split,
             "prefix_size": self.prefix_size,
             "sample_size": self.sample_size,
-            "seed": self.seed,
         }
 
 

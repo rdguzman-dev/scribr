@@ -147,8 +147,8 @@ not be transcribed as notes. Only evaluate the test split with a frozen
 config.
 
 To compare against the human baseline directly, score the same 20 test
-melodies: split `test`, 20 examples (the baseline sampled the first
-1,000 records, seed 42).
+melodies: split `test`, 20 examples (the baseline uses the first 20
+test records).
 
 ## Layout
 

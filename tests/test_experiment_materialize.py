@@ -53,7 +53,6 @@ def make_spec(
     *,
     prefix_size: int = 4,
     sample_size: int = 2,
-    seed: int = 7,
     instruments: tuple[Instrument, ...] = INSTRUMENTS,
 ) -> ExperimentSpec:
     return ExperimentSpec(
@@ -62,7 +61,6 @@ def make_spec(
             split="test",
             prefix_size=prefix_size,
             sample_size=sample_size,
-            seed=seed,
         ),
         instruments=instruments,
         synthesis=SynthesisSpec(),
@@ -123,9 +121,9 @@ def test_materialize_writes_manifest_wav_and_reference(
         assert example.program == example.instrument.program
 
 
-def test_sampling_and_round_robin_assignment(tmp_path: Path) -> None:
+def test_selection_and_round_robin_assignment(tmp_path: Path) -> None:
     dataset = ListDataset(make_examples(6))
-    spec = make_spec(prefix_size=6, sample_size=5, seed=42)
+    spec = make_spec(prefix_size=6, sample_size=5)
 
     manifest = materialize(
         spec,
@@ -135,11 +133,11 @@ def test_sampling_and_round_robin_assignment(tmp_path: Path) -> None:
     )
 
     assert [example.candidate_index for example in manifest.examples] == [
-        5,
         0,
-        4,
-        2,
         1,
+        2,
+        3,
+        4,
     ]
     assert [example.index for example in manifest.examples] == [0, 1, 2, 3, 4]
     assert [example.instrument for example in manifest.examples] == [
@@ -266,7 +264,7 @@ def test_different_config_without_force_raises(
 ) -> None:
     dataset = MelodyDataset(split="test", root=data_root)
     materialize(
-        make_spec(seed=1),
+        make_spec(sample_size=3),
         tmp_path,
         dataset=dataset,
         synthesizers=make_synthesizers(),
@@ -274,7 +272,7 @@ def test_different_config_without_force_raises(
 
     with pytest.raises(ValueError, match="different config"):
         materialize(
-            make_spec(seed=2),
+            make_spec(sample_size=2),
             tmp_path,
             dataset=dataset,
             synthesizers=make_synthesizers(),
