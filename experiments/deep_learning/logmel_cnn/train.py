@@ -97,7 +97,7 @@ def train(
         config: Full training configuration.
         artifacts_dir: Directory for checkpoints, config, and history.
         run_name: MLflow run name.
-        tracking_uri: Local MLflow store.
+        tracking_uri: MLflow tracking URI, or a SQLite database path.
         soundfont_path: SoundFont override; defaults to
             `SCRIBR_SOUNDFONT`. Ignored when `synthesizer_factory` is
             given.
@@ -603,9 +603,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--tracking-uri",
-        type=Path,
         default=DEFAULT_TRACKING_URI,
-        help="local MLflow store",
+        help="MLflow tracking URI or SQLite database path",
     )
     args = parser.parse_args()
 
