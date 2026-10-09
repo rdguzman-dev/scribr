@@ -193,7 +193,7 @@ def train(
         for epoch in range(1, config.optimization.epochs + 1):
             started = time.perf_counter()
             model.train()
-            train_loss, train_accuracy, global_step = _train_epoch(
+            train_metrics, global_step = _train_epoch(
                 model,
                 train_loader,
                 optimizer,
@@ -213,14 +213,12 @@ def train(
             record = {
                 "epoch": epoch,
                 "step": global_step,
-                "train/loss": train_loss,
-                "train/token_accuracy": train_accuracy,
+                **train_metrics,
                 "epoch_seconds": epoch_seconds,
                 **val_metrics,
             }
             metrics = {
-                "train/loss": train_loss,
-                "train/token_accuracy": train_accuracy,
+                **train_metrics,
                 "epoch_seconds": epoch_seconds,
                 **val_metrics,
             }
@@ -356,8 +354,17 @@ def _train_epoch(
     *,
     start_step: int,
     loss_weight: torch.Tensor | None,
-) -> tuple[float, float, int]:
-    total_loss = 0.0
+) -> tuple[dict[str, float], int]:
+    """Train for one epoch and return its metrics and final step.
+
+    The weighted loss divides by the sum of the sample weights seen in
+    the epoch, not by the token count, so the epoch mean stays exact
+    when the loader shuffles examples. `train/loss_unweighted` drops
+    the weights and is the counterpart of the unweighted `val/loss`.
+    """
+    weighted_total = 0.0
+    weight_total = 0.0
+    unweighted_total = 0.0
     correct = 0
     positions = 0
     step = start_step
@@ -368,9 +375,18 @@ def _train_epoch(
 
         optimizer.zero_grad(set_to_none=True)
         logits = model(batch_features)
-        loss = F.cross_entropy(
-            logits.transpose(1, 2), targets, weight=loss_weight
+        token_losses = F.cross_entropy(
+            logits.transpose(1, 2), targets, reduction="none"
         )
+
+        if loss_weight is None:
+            loss = token_losses.mean()
+            batch_weight = float(targets.numel())
+        else:
+            batch_weights = loss_weight[targets]
+            loss = (token_losses * batch_weights).sum() / batch_weights.sum()
+            batch_weight = float(batch_weights.detach().sum())
+
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(
             model.parameters(), optimization.gradient_clip
@@ -378,7 +394,9 @@ def _train_epoch(
         optimizer.step()
 
         step += 1
-        total_loss += float(loss.detach()) * targets.numel()
+        weighted_total += float(loss.detach()) * batch_weight
+        weight_total += batch_weight
+        unweighted_total += float(token_losses.detach().sum())
         correct += int((logits.detach().argmax(-1) == targets).sum())
         positions += targets.numel()
 
@@ -386,6 +404,9 @@ def _train_epoch(
             log_metrics(
                 {
                     "train/loss": float(loss.detach()),
+                    "train/loss_unweighted": float(
+                        token_losses.detach().mean()
+                    ),
                     "train/grad_norm": float(grad_norm),
                     "train/learning_rate": optimizer.param_groups[0]["lr"],
                 },
@@ -395,7 +416,14 @@ def _train_epoch(
     if positions == 0:
         raise ValueError("training loader produced no examples")
 
-    return total_loss / positions, correct / positions, step
+    return (
+        {
+            "train/loss": weighted_total / weight_total,
+            "train/loss_unweighted": unweighted_total / positions,
+            "train/token_accuracy": correct / positions,
+        },
+        step,
+    )
 
 
 def _validation_metrics(
@@ -407,6 +435,7 @@ def _validation_metrics(
 
     The loss is unweighted even when training uses class weights, so
     `val/loss` means the same thing across weighted and unweighted runs.
+    `train/loss_unweighted` follows the same convention.
     Pitch, hold, and note-off accuracy are logged separately because
     overall token accuracy hides a collapse to one class.
     """
