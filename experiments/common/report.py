@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import importlib.metadata
 import json
-import os
 import platform
 import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
-from scribr.synthesis import SOUNDFONT_ENV_VAR
-
 from .evaluation import ExperimentEvaluation, group_counts
 from .markdown import display, format_score, markdown_table
 from .materialize import Manifest
 from .predictions import TextPredictions
+from .synthesis import resolve_soundfont_path
 
 # Metric display order; anything else follows in the order it appears.
 _METRIC_ORDER = (
@@ -75,6 +73,9 @@ def _report_dict(
     soundfont_path: str | Path | None,
 ) -> dict:
     counts = group_counts(evaluation)
+    resolved_soundfont = resolve_soundfont_path(
+        soundfont_path, required=False
+    )
     package_versions = {
         name: _package_version(name) for name in ("scribr", "mir_eval")
     }
@@ -86,7 +87,9 @@ def _report_dict(
             "git_commit": git_commit(),
             "python_version": platform.python_version(),
             "package_versions": package_versions,
-            "soundfont_path": _resolved_soundfont(soundfont_path),
+            "soundfont_path": (
+                None if resolved_soundfont is None else str(resolved_soundfont)
+            ),
             "tempo": evaluation.tempo,
             "metric_options": dict(evaluation.metric_options),
             "num_examples": len(evaluation.per_example),
@@ -328,18 +331,3 @@ def _package_version(name: str) -> str | None:
 
     except importlib.metadata.PackageNotFoundError:
         return None
-
-
-def _resolved_soundfont(
-    soundfont_path: str | Path | None,
-) -> str | None:
-    configured = (
-        str(soundfont_path)
-        if soundfont_path is not None
-        else os.environ.get(SOUNDFONT_ENV_VAR)
-    )
-
-    if not configured:
-        return None
-
-    return str(Path(configured).expanduser())
