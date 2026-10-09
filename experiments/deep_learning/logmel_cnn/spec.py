@@ -160,7 +160,18 @@ class ModelSpec:
 
 @dataclass(frozen=True, slots=True)
 class OptimizationSpec:
-    """Training loop and optimizer settings."""
+    """Training loop and optimizer settings.
+
+    Attributes:
+        class_weights: Whether to weight the loss by token frequency.
+        class_weight_power: Exponent applied to inverse token
+            frequency. `1.0` is full inverse frequency, `0.0` is
+            uniform, and `0.5` tempers the correction for rare pitch
+            tokens.
+        primary_instrument: Instrument whose `F-measure_no_offset`
+            selects the best checkpoint, or `None` for the mean over
+            all evaluation instruments.
+    """
 
     seed: int = 42
     batch_size: int = 64
@@ -173,6 +184,8 @@ class OptimizationSpec:
     metric_examples: int = 128
     metric_interval: int = 1
     class_weights: bool = True
+    class_weight_power: float = 0.5
+    primary_instrument: str | None = None
     device: str = "auto"
 
     def __post_init__(self) -> None:
@@ -206,6 +219,12 @@ class OptimizationSpec:
         if self.metric_interval < 1:
             raise ValueError("metric_interval must be positive")
 
+        if not 0.0 <= self.class_weight_power <= 1.0:
+            raise ValueError("class_weight_power must be in [0, 1]")
+
+        if self.primary_instrument is not None and not self.primary_instrument:
+            raise ValueError("primary_instrument must be non-empty when set")
+
         if not self.device:
             raise ValueError("device must be non-empty")
 
@@ -224,6 +243,8 @@ class OptimizationSpec:
             metric_examples=data["metric_examples"],
             metric_interval=data["metric_interval"],
             class_weights=data["class_weights"],
+            class_weight_power=data.get("class_weight_power", 0.5),
+            primary_instrument=data.get("primary_instrument"),
             device=data["device"],
         )
 
@@ -241,6 +262,8 @@ class OptimizationSpec:
             "metric_examples": self.metric_examples,
             "metric_interval": self.metric_interval,
             "class_weights": self.class_weights,
+            "class_weight_power": self.class_weight_power,
+            "primary_instrument": self.primary_instrument,
             "device": self.device,
         }
 
@@ -287,6 +310,16 @@ class TrainingConfig:
 
         if not evaluation_instruments:
             raise ValueError("at least one evaluation instrument is required")
+
+        primary_instrument = self.optimization.primary_instrument
+
+        if (
+            primary_instrument is not None
+            and primary_instrument not in evaluation_instruments
+        ):
+            raise ValueError(
+                "primary_instrument must be one of evaluation_instruments"
+            )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> TrainingConfig:

@@ -68,7 +68,7 @@ class TrainingResult:
     Attributes:
         run_name: MLflow run name.
         artifacts_dir: Directory holding the checkpoints and history.
-        best_metric: Best `F-measure_no_offset` seen during training.
+        best_metric: Best primary-metric score seen during training.
         best_checkpoint: Checkpoint with the best metric.
         history: One record per epoch with losses and metric scores.
     """
@@ -170,14 +170,23 @@ def train(
     global_step = 0
 
     loss_weight = None
+    primary_instrument = config.optimization.primary_instrument
 
     if config.optimization.class_weights:
-        loss_weight = _class_weights(train_examples).to(resolved_device)
+        loss_weight = _class_weights(
+            train_examples,
+            power=config.optimization.class_weight_power,
+        ).to(resolved_device)
 
+    metric_label = (
+        f"{primary_instrument}/F-measure_no_offset"
+        if primary_instrument is not None
+        else "F-measure_no_offset"
+    )
     tags = {
         "device": str(resolved_device),
         "instrument": config.instrument.value,
-        "metric": "F-measure_no_offset",
+        "metric": metric_label,
         "dataset.subset_sha256": subset_fingerprint(train_examples),
         **git_metadata(),
     }
@@ -258,7 +267,12 @@ def train(
                     )
                 }
 
-                score = _best_metric_score(evaluation.metrics)
+                if primary_instrument is None:
+                    score = _best_metric_score(evaluation.metrics)
+                else:
+                    score = _best_metric_score(
+                        evaluation.grouped_metrics[primary_instrument]
+                    )
 
                 if score > best_metric:
                     best_metric = score
@@ -486,14 +500,24 @@ def _validation_metrics(
     return metrics
 
 
-def _class_weights(examples: Sequence[MelodyExample]) -> torch.Tensor:
-    """Return inverse-frequency weights for the training targets.
+def _class_weights(
+    examples: Sequence[MelodyExample],
+    *,
+    power: float = 0.5,
+) -> torch.Tensor:
+    """Return tempered inverse-frequency weights for the training targets.
 
-    The pitch-sequence vocabulary is imbalanced: `HOLD` and `NOTE_OFF`
-    together are the majority. Without weighting, the model can settle
-    on predicting one majority class, which decodes to an empty melody.
-    Weights come from the subset the run actually sees, so they are
-    reproducible from the config and subset fingerprint.
+    The raw weight is `count ** -power`, normalized to mean one.
+    `power=1` is full inverse frequency, which over-corrects the
+    pitch-sequence vocabulary: `HOLD` and `NOTE_OFF` together are the
+    majority, and rare pitch tokens get weights large enough to push
+    the model toward isolated notes. `power=0.5` tempers that
+    correction, and `power=0` is uniform. Weights come from the subset
+    the run actually sees, so they are reproducible from the config
+    and subset fingerprint.
+
+    The normalization is cosmetic: the weighted loss divides by the
+    batch weight sum, so any common scale gives the same gradients.
     """
     counts = torch.zeros(NUM_CLASSES, dtype=torch.float64)
 
@@ -502,8 +526,9 @@ def _class_weights(examples: Sequence[MelodyExample]) -> torch.Tensor:
             counts[token_to_class(token)] += 1.0
 
     counts.clamp_min_(1.0)
+    weights = counts.pow(-power)
 
-    return (counts.sum() / (NUM_CLASSES * counts)).to(torch.float32)
+    return (weights / weights.mean()).to(torch.float32)
 
 
 def _make_loader(
@@ -622,7 +647,16 @@ def main() -> None:
     parser.add_argument(
         "--no-class-weights",
         action="store_true",
-        help="disable inverse-frequency class weights",
+        help="disable class weights",
+    )
+    parser.add_argument(
+        "--class-weight-power",
+        type=float,
+        default=None,
+        help=(
+            "class weight exponent override; 1.0 is full inverse "
+            "frequency, 0.5 is tempered"
+        ),
     )
     parser.add_argument(
         "--data-root",
@@ -664,6 +698,15 @@ def main() -> None:
         config = replace(
             config,
             optimization=replace(config.optimization, class_weights=False),
+        )
+
+    if args.class_weight_power is not None:
+        config = replace(
+            config,
+            optimization=replace(
+                config.optimization,
+                class_weight_power=args.class_weight_power,
+            ),
         )
 
     run_name = args.run_name or (
