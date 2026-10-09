@@ -4,38 +4,19 @@ experiment."""
 from __future__ import annotations
 
 import hashlib
-import os
 from collections.abc import Iterable
-from dataclasses import dataclass
 from itertools import islice
 from pathlib import Path
 
-from experiments.common.spec import SynthesisSpec
+from experiments.common.synthesis import (
+    SynthesizerFactory,
+    resolve_soundfont_path,
+)
 from scribr.data import MelodyDataset
 from scribr.deep_learning import LogMelSpectrogram, PitchSequenceCNN
 from scribr.representation import STEPS_PER_MELODY, MelodyExample
-from scribr.synthesis import SOUNDFONT_ENV_VAR, Instrument, Synthesizer
 
 from .spec import DataSpec, FeaturesSpec, ModelSpec, TrainingConfig
-
-
-@dataclass(frozen=True, slots=True)
-class SynthesizerFactory:
-    """Picklable per-instrument synthesizer factory."""
-
-    soundfont_path: str
-    synthesis: SynthesisSpec
-
-    def __call__(self, instrument: Instrument) -> Synthesizer:
-        return Synthesizer(
-            self.soundfont_path,
-            sample_rate=self.synthesis.sample_rate,
-            tempo=self.synthesis.tempo,
-            program=instrument.program,
-            velocity=self.synthesis.velocity,
-            gain=self.synthesis.gain,
-            release_tail_seconds=self.synthesis.release_tail_seconds,
-        )
 
 
 def load_examples(
@@ -90,19 +71,7 @@ def default_synthesizer_factory(
 ) -> SynthesizerFactory:
     """Build the factory, resolving the SoundFont from the
     environment."""
-    configured = (
-        soundfont_path
-        if soundfont_path is not None
-        else os.environ.get(SOUNDFONT_ENV_VAR)
-    )
-
-    if configured is None:
-        raise ValueError(
-            "No SoundFont configured. Pass soundfont_path=... or set the "
-            f"{SOUNDFONT_ENV_VAR} environment variable."
-        )
-
     return SynthesizerFactory(
-        soundfont_path=str(Path(configured).expanduser()),
+        soundfont_path=resolve_soundfont_path(soundfont_path),
         synthesis=config.synthesis,
     )

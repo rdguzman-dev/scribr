@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import random
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -21,14 +20,11 @@ from typing import Any
 
 from scribr.data import MelodyDataset
 from scribr.representation import MelodyExample, melody_to_text
-from scribr.synthesis import (
-    SOUNDFONT_ENV_VAR,
-    Instrument,
-    Synthesizer,
-)
+from scribr.synthesis import Instrument, Synthesizer
 from scribr.wav import write_wav
 
 from .spec import ExperimentSpec
+from .synthesis import SynthesizerFactory, resolve_soundfont_path
 
 SCHEMA_VERSION = 1
 
@@ -227,9 +223,12 @@ def materialize(
     )
 
     if synthesizers is None:
-        synthesizers, resolved_soundfont = _build_synthesizers(
-            spec, soundfont_path
-        )
+        resolved_soundfont = resolve_soundfont_path(soundfont_path)
+        factory = SynthesizerFactory(resolved_soundfont, spec.synthesis)
+        synthesizers = {
+            instrument: factory(instrument)
+            for instrument in spec.instruments
+        }
         soundfont_sha256 = _sha256_file(resolved_soundfont)
 
     else:
@@ -280,39 +279,6 @@ def materialize(
     manifest.save(manifest_path)
 
     return manifest
-
-
-def _build_synthesizers(
-    spec: ExperimentSpec,
-    soundfont_path: str | Path | None,
-) -> tuple[dict[Instrument, Synthesizer], Path]:
-    configured = (
-        soundfont_path
-        if soundfont_path is not None
-        else os.environ.get(SOUNDFONT_ENV_VAR)
-    )
-
-    if configured is None:
-        raise ValueError(
-            "No SoundFont configured. Pass soundfont_path=... or set the "
-            f"{SOUNDFONT_ENV_VAR} environment variable."
-        )
-
-    resolved = Path(configured).expanduser()
-    synthesizers = {
-        instrument: Synthesizer(
-            resolved,
-            sample_rate=spec.synthesis.sample_rate,
-            tempo=spec.synthesis.tempo,
-            program=instrument.program,
-            velocity=spec.synthesis.velocity,
-            gain=spec.synthesis.gain,
-            release_tail_seconds=spec.synthesis.release_tail_seconds,
-        )
-        for instrument in spec.instruments
-    }
-
-    return synthesizers, resolved
 
 
 def _sha256_file(path: Path) -> str:

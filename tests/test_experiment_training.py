@@ -25,6 +25,7 @@ from experiments.deep_learning.logmel_cnn.ablation import (
 from experiments.deep_learning.logmel_cnn.data import (
     build_features,
     build_model,
+    default_synthesizer_factory,
     load_examples,
     subset_fingerprint,
 )
@@ -192,6 +193,18 @@ def test_subset_fingerprint_is_stable_and_sensitive(
 
     assert subset_fingerprint(examples) == subset_fingerprint(examples)
     assert subset_fingerprint(examples[:-1]) != subset_fingerprint(examples)
+
+
+def test_default_synthesizer_factory_binds_soundfont_and_synthesis(
+    tmp_path: Path,
+) -> None:
+    config = tiny_config()
+    soundfont = tmp_path / "test.sf2"
+
+    factory = default_synthesizer_factory(config, soundfont)
+
+    assert factory.soundfont_path == soundfont
+    assert factory.synthesis == config.synthesis
 
 
 def test_class_weights_temper_the_inverse_frequency_correction() -> None:
