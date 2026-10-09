@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import torch
 
 from scribr.deep_learning import (
@@ -22,7 +23,8 @@ SEQUENCE = (60, HOLD_TOKEN, HOLD_TOKEN, NOTE_OFF_TOKEN)
 
 
 class FakeSynthesizer:
-    def __init__(self) -> None:
+    def __init__(self, sample_rate: int = 22_050) -> None:
+        self.sample_rate = sample_rate
         self.calls = 0
 
     def synthesize(self, melody: Melody) -> np.ndarray:
@@ -74,6 +76,17 @@ def test_item_features_and_target() -> None:
     assert features.shape == (16, 16)
     assert target.dtype == torch.long
     assert target.tolist() == list(pitch_sequence_to_classes(SEQUENCE))
+
+
+def test_mismatched_sample_rates_raise() -> None:
+    dataset = SynthesizedMelodyDataset(
+        [make_example()],
+        lambda: FakeSynthesizer(sample_rate=16_000),
+        tiny_features(),
+    )
+
+    with pytest.raises(ValueError, match="sample rate"):
+        dataset[0]
 
 
 def test_synthesizer_is_built_once_per_dataset() -> None:

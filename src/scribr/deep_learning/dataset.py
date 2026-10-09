@@ -31,7 +31,7 @@ class SynthesizedMelodyDataset(Dataset):
             `Synthesizer` holds a module handle and cannot be pickled,
             which is why the factory exists instead of a synthesizer.
         features: Feature extractor applied to each synthesized
-            waveform.
+            waveform. Its sample rate must match the synthesizer's.
 
     Note:
         The target is the raw `MelodyExample.pitch_sequence` mapped to
@@ -68,6 +68,15 @@ class SynthesizedMelodyDataset(Dataset):
 
     def _synthesizer_instance(self) -> Synthesizer:
         if self._synthesizer is None:
-            self._synthesizer = self.synthesizer_factory()
+            synthesizer = self.synthesizer_factory()
+
+            if synthesizer.sample_rate != self.features.sample_rate:
+                raise ValueError(
+                    f"synthesizer sample rate {synthesizer.sample_rate} "
+                    f"does not match feature sample rate "
+                    f"{self.features.sample_rate}"
+                )
+
+            self._synthesizer = synthesizer
 
         return self._synthesizer

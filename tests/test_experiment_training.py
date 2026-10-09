@@ -171,6 +171,22 @@ def test_primary_instrument_must_be_evaluated() -> None:
         )
 
 
+def test_mismatched_sample_rates_are_rejected() -> None:
+    config = tiny_config()
+
+    with pytest.raises(ValueError, match="sample_rate"):
+        replace(
+            config,
+            synthesis=replace(config.synthesis, sample_rate=16_000),
+        )
+
+    with pytest.raises(ValueError, match="sample_rate"):
+        replace(
+            config,
+            features=replace(config.features, sample_rate=16_000),
+        )
+
+
 def test_flatten_config_uses_dot_separated_names() -> None:
     flat = flatten_config(
         {"name": "run", "model": {"dropout": 0.1, "head": {"size": 2}}}

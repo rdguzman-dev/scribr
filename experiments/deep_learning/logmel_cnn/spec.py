@@ -321,6 +321,13 @@ class TrainingConfig:
                 "primary_instrument must be one of evaluation_instruments"
             )
 
+        if self.synthesis.sample_rate != self.features.sample_rate:
+            raise ValueError(
+                "synthesis.sample_rate and features.sample_rate must match; "
+                f"got {self.synthesis.sample_rate} and "
+                f"{self.features.sample_rate}"
+            )
+
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> TrainingConfig:
         """Build a config from its JSON-compatible mapping."""
