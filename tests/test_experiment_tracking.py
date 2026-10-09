@@ -16,7 +16,7 @@ from experiments.common.tracking import (
 
 
 def test_run_records_params_metrics_and_artifacts(tmp_path: Path) -> None:
-    tracking_uri = tmp_path / "mlruns"
+    tracking_uri = tmp_path / "mlflow.db"
     checkpoint = tmp_path / "checkpoint.pt"
     checkpoint.write_bytes(b"weights")
     figures = tmp_path / "figures"
@@ -42,7 +42,7 @@ def test_run_records_params_metrics_and_artifacts(tmp_path: Path) -> None:
         log_artifact(checkpoint)
         log_artifact(figures)
 
-    client = MlflowClient(tracking_uri=tracking_uri.as_uri())
+    client = MlflowClient(tracking_uri=f"sqlite:///{tracking_uri}")
     stored = client.get_run(run.info.run_id)
 
     assert client.get_experiment(stored.info.experiment_id).name == "deep_learning"

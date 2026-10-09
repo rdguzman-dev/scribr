@@ -96,9 +96,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--tracking-uri",
-        type=Path,
         default=DEFAULT_TRACKING_URI,
-        help="local MLflow store",
+        help="MLflow tracking URI or SQLite database path",
     )
     args = parser.parse_args()
 

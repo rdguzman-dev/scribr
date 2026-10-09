@@ -10,7 +10,8 @@ Training is piano-only. Evaluation renders the same references with all
 four instruments, so the per-instrument split measures timbre transfer:
 the model never sees guitar or violin audio during training.
 
-Runs are tracked in a local MLflow store. Nothing leaves the machine.
+Runs are tracked in a local MLflow SQLite store. Nothing leaves the
+machine.
 
 ## Setup
 
@@ -80,8 +81,12 @@ Every run logs to the `scribr-deep-learning` MLflow experiment:
 View runs locally:
 
 ```bash
-uv run mlflow ui --backend-store-uri mlruns
+uv run mlflow ui --backend-store-uri sqlite:///mlflow.db
 ```
+
+Run metadata lives in `mlflow.db` at the repository root. Artifacts stay
+in `mlruns/` beside the database; the migrated file store paths in the
+database point there.
 
 Tags and params are the reproducibility contract. The subset fingerprint
 covers the training pitch sequences, so two runs with the same seed,

@@ -173,7 +173,7 @@ def test_train_logs_run_and_writes_artifacts(
     data_root: Path,
 ) -> None:
     config = tiny_config()
-    tracking_uri = tmp_path / "mlruns"
+    tracking_uri = tmp_path / "mlflow.db"
     artifacts_dir = tmp_path / "artifacts"
 
     result = train(
@@ -201,7 +201,7 @@ def test_train_logs_run_and_writes_artifacts(
     assert payload["epoch"] == 1
     assert payload["metric"] is not None
 
-    client = MlflowClient(tracking_uri=tracking_uri.as_uri())
+    client = MlflowClient(tracking_uri=f"sqlite:///{tracking_uri}")
     experiment = client.get_experiment_by_name(EXPERIMENT)
 
     assert experiment is not None

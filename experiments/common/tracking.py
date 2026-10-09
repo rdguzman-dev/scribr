@@ -1,7 +1,8 @@
 """Local MLflow tracking for experiment runs.
 
-Runs are written to `mlruns/` at the repository root and never leave the
-machine. Point `tracking_uri` at another directory to isolate a run.
+Run metadata is written to `mlflow.db` at the repository root and never
+leaves the machine. Artifacts go to `mlruns/` next to the database. Point
+`tracking_uri` at another SQLite database to isolate runs.
 """
 
 from __future__ import annotations
@@ -13,10 +14,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-# Set before importing mlflow: it reads both of these during import. The
-# file store needs an explicit opt-in, and the assistant hint would print
+# Set before importing mlflow: the assistant hint would otherwise print
 # once per `DataLoader` worker process.
-os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "true")
 
 import mlflow  # noqa: E402
@@ -24,8 +23,8 @@ import mlflow  # noqa: E402
 # Repository root, used for the default store and git metadata tags.
 _REPOSITORY = Path(__file__).resolve().parents[2]
 
-# `<repo>/mlruns`, the default local MLflow store.
-DEFAULT_TRACKING_URI = _REPOSITORY / "mlruns"
+# `<repo>/mlflow.db`, the default local SQLite tracking store.
+DEFAULT_TRACKING_URI = f"sqlite:///{_REPOSITORY / 'mlflow.db'}"
 
 
 @contextmanager
@@ -41,21 +40,49 @@ def start_run(
     Args:
         experiment: Experiment name. Created on first use.
         run_name: Run name. MLflow generates one when omitted.
-        tracking_uri: Local directory for the MLflow store. Defaults to
-            `mlruns/` at the repository root.
+        tracking_uri: Tracking store URI, or a path to a SQLite database.
+            Defaults to `mlflow.db` at the repository root.
         tags: Run tags, such as the model or dataset variant.
 
     Yields:
         The active `mlflow.ActiveRun`.
     """
-    mlflow.set_tracking_uri(_as_uri(tracking_uri))
-    mlflow.set_experiment(experiment)
+    resolved_uri = _as_tracking_uri(tracking_uri)
+    mlflow.set_tracking_uri(resolved_uri)
+    experiment_id = _ensure_experiment(
+        experiment, _default_artifact_root(resolved_uri)
+    )
 
     with mlflow.start_run(
+        experiment_id=experiment_id,
         run_name=run_name,
         tags=dict(tags) if tags is not None else None,
     ) as run:
         yield run
+
+
+def _ensure_experiment(name: str, artifact_location: str | None) -> str:
+    client = mlflow.MlflowClient()
+    existing = client.get_experiment_by_name(name)
+
+    if existing is not None:
+        return existing.experiment_id
+
+    return client.create_experiment(name, artifact_location=artifact_location)
+
+
+def _default_artifact_root(tracking_uri: str) -> str | None:
+    """Return the artifact root for an experiment on this store.
+
+    SQLite stores keep a `mlruns/` directory beside the database, which
+    also keeps test runs inside their temporary directory. Other stores
+    fall back to MLflow's artifact root.
+    """
+    if not tracking_uri.startswith("sqlite:///"):
+        return None
+
+    database = Path(tracking_uri.removeprefix("sqlite:///"))
+    return (database.expanduser().resolve().parent / "mlruns").as_uri()
 
 
 def log_params(params: Mapping[str, Any]) -> None:
@@ -111,6 +138,8 @@ def _git(arguments: list[str]) -> str | None:
     return result.stdout.strip()
 
 
-def _as_uri(tracking_uri: str | Path) -> str:
-    """Return a file URI for a local tracking directory."""
-    return Path(tracking_uri).expanduser().resolve().as_uri()
+def _as_tracking_uri(tracking_uri: str | Path) -> str:
+    """Return a tracking URI, treating plain paths as SQLite databases."""
+    if isinstance(tracking_uri, str) and "://" in tracking_uri:
+        return tracking_uri
+    return f"sqlite:///{Path(tracking_uri).expanduser().resolve()}"
