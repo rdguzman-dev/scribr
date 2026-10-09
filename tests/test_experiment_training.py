@@ -8,7 +8,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 import torch
+import torch.nn.functional as F
 from mlflow.tracking import MlflowClient
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
 
 from experiments.common.spec import SynthesisSpec
 from experiments.deep_learning.logmel_cnn.data import (
@@ -30,6 +33,7 @@ from experiments.deep_learning.logmel_cnn.spec import (
 )
 from experiments.deep_learning.logmel_cnn.train import (
     EXPERIMENT,
+    _train_epoch,
     flatten_config,
     resolve_device,
     train,
@@ -168,6 +172,80 @@ def test_resolve_device_accepts_cpu() -> None:
     assert resolve_device("cpu") == torch.device("cpu")
 
 
+class FixedLogits(nn.Module):
+    """Select a fixed logit row using the index in the first feature."""
+
+    def __init__(self, logits: torch.Tensor) -> None:
+        super().__init__()
+        self.logits = nn.Parameter(logits)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        return self.logits[features[:, 0].long()]
+
+
+@pytest.mark.parametrize("use_class_weights", [False, True])
+def test_train_epoch_aggregates_losses_over_tokens(
+    use_class_weights: bool,
+) -> None:
+    torch.manual_seed(0)
+    steps, classes = 4, 5
+    logits = torch.randn(5, steps, classes)
+    targets = torch.tensor(
+        [
+            [0, 1, 2, 3],
+            [1, 2, 3, 4],
+            [0, 2, 4, 1],
+            [3, 0, 1, 4],
+            [2, 3, 0, 1],
+        ]
+    )
+    loss_weight = (
+        torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
+        if use_class_weights
+        else None
+    )
+    model = FixedLogits(logits)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0)
+    dataset = TensorDataset(
+        torch.arange(5, dtype=torch.float32).unsqueeze(1), targets
+    )
+    loader = DataLoader(dataset, batch_size=2, shuffle=False)
+
+    metrics, step = _train_epoch(
+        model,
+        loader,
+        optimizer,
+        torch.device("cpu"),
+        OptimizationSpec(epochs=1, log_every_steps=100),
+        start_step=0,
+        loss_weight=loss_weight,
+    )
+
+    token_losses = F.cross_entropy(
+        logits.transpose(1, 2), targets, reduction="none"
+    )
+
+    if loss_weight is None:
+        expected_loss = float(token_losses.mean())
+    else:
+        train_weights = loss_weight[targets]
+        expected_loss = float(
+            (token_losses * train_weights).sum() / train_weights.sum()
+        )
+
+    expected_unweighted = float(token_losses.mean())
+    expected_accuracy = float((logits.argmax(-1) == targets).float().mean())
+
+    assert step == 3
+    assert metrics["train/loss"] == pytest.approx(expected_loss, abs=1e-6)
+    assert metrics["train/loss_unweighted"] == pytest.approx(
+        expected_unweighted, abs=1e-6
+    )
+    assert metrics["train/token_accuracy"] == pytest.approx(
+        expected_accuracy, abs=1e-6
+    )
+
+
 def test_train_logs_run_and_writes_artifacts(
     tmp_path: Path,
     data_root: Path,
@@ -192,6 +270,7 @@ def test_train_logs_run_and_writes_artifacts(
     assert (artifacts_dir / "history.json").is_file()
     assert len(result.history) == 1
     assert "val/loss" in result.history[0]
+    assert "train/loss_unweighted" in result.history[0]
 
     payload = torch.load(
         result.best_checkpoint, map_location="cpu", weights_only=True
@@ -216,6 +295,8 @@ def test_train_logs_run_and_writes_artifacts(
     assert run.data.params["model.channels"] == "[4, 8]"
     assert run.data.params["optimization.learning_rate"] == "0.001"
     assert "val/loss" in run.data.metrics
+    assert "train/loss" in run.data.metrics
+    assert "train/loss_unweighted" in run.data.metrics
     assert "val/F-measure_no_offset" in run.data.metrics
     assert "val/piano/F-measure_no_offset" in run.data.metrics
     assert len(client.list_artifacts(run.info.run_id)) == 3
