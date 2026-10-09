@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import platform
-import subprocess
 from collections.abc import Callable, Sequence
 from functools import partial
 from pathlib import Path
@@ -23,7 +22,10 @@ from torch.utils.data import DataLoader
 from experiments.common.evaluation import (
     ExperimentEvaluation,
     evaluate_predictions,
+    group_counts,
 )
+from experiments.common.markdown import display, format_score, markdown_table
+from experiments.common.report import git_commit, metric_headers, metric_table
 from scribr.deep_learning import (
     LogMelSpectrogram,
     SynthesizedMelodyDataset,
@@ -33,24 +35,6 @@ from scribr.representation import Melody, MelodyExample
 from scribr.synthesis import Instrument, Synthesizer
 
 from .spec import TrainingConfig
-
-# Metric display order; anything else follows in the order it appears.
-_METRIC_ORDER = (
-    "F-measure_no_offset",
-    "Precision_no_offset",
-    "Recall_no_offset",
-    "Average_Overlap_Ratio_no_offset",
-    "Onset_F-measure",
-    "Onset_Precision",
-    "Onset_Recall",
-    "F-measure",
-    "Precision",
-    "Recall",
-    "Average_Overlap_Ratio",
-    "Offset_F-measure",
-    "Offset_Precision",
-    "Offset_Recall",
-)
 
 
 def run_evaluation(
@@ -135,13 +119,14 @@ def write_report(
     """
     artifacts = Path(artifacts_dir)
     artifacts.mkdir(parents=True, exist_ok=True)
+    counts = group_counts(evaluation)
 
     data = {
         "experiment": config.name,
         "split": split,
         "checkpoint": str(checkpoint),
         "metadata": {
-            "git_commit": _git_commit(),
+            "git_commit": git_commit(),
             "python_version": platform.python_version(),
             "torch_version": torch.__version__,
             "device": device,
@@ -153,7 +138,7 @@ def write_report(
         "overall": dict(evaluation.metrics),
         "per_instrument": {
             instrument: {
-                "num_examples": _group_counts(evaluation).get(instrument, 0),
+                "num_examples": counts.get(instrument, 0),
                 "metrics": dict(metrics),
             }
             for instrument, metrics in evaluation.grouped_metrics.items()
@@ -195,15 +180,6 @@ def _estimates(
     return melodies
 
 
-def _group_counts(evaluation: ExperimentEvaluation) -> dict[str, int]:
-    counts: dict[str, int] = {}
-
-    for example in evaluation.per_example:
-        counts[example.group] = counts.get(example.group, 0) + 1
-
-    return counts
-
-
 def _markdown(data: dict[str, Any]) -> str:
     metadata = data["metadata"]
 
@@ -212,10 +188,10 @@ def _markdown(data: dict[str, Any]) -> str:
         "",
         "## Metadata",
         "",
-        _markdown_table(
+        markdown_table(
             ("Field", "Value"),
             (
-                ("Git commit", _display(metadata["git_commit"])),
+                ("Git commit", display(metadata["git_commit"])),
                 ("Python", metadata["python_version"]),
                 ("Torch", metadata["torch_version"]),
                 ("Device", metadata["device"]),
@@ -235,7 +211,7 @@ def _markdown(data: dict[str, Any]) -> str:
         "",
         "## Overall metrics",
         "",
-        _metric_table(data["overall"]),
+        metric_table(data["overall"]),
         "",
         "## Per-instrument metrics",
         "",
@@ -250,86 +226,16 @@ def _per_instrument_table(per_instrument: dict[str, Any]) -> str:
     if not per_instrument:
         return "No examples were evaluated."
 
-    headers = _ordered_metrics(
-        {
-            name: score
-            for entry in per_instrument.values()
-            for name, score in entry["metrics"].items()
-        }
-    )
+    headers = metric_headers(per_instrument.values())
 
-    return _markdown_table(
-        ("Instrument", "N") + tuple(headers),
+    return markdown_table(
+        ("Instrument", "N") + headers,
         tuple(
             (instrument, str(entry["num_examples"]))
             + tuple(
-                _format_score(entry["metrics"].get(name))
+                format_score(entry["metrics"].get(name))
                 for name in headers
             )
             for instrument, entry in per_instrument.items()
         ),
     )
-
-
-def _metric_table(metrics: dict[str, float]) -> str:
-    if not metrics:
-        return "No examples were evaluated."
-
-    return _markdown_table(
-        ("Metric", "Score"),
-        tuple(
-            (name, _format_score(metrics[name]))
-            for name in _ordered_metrics(metrics)
-        ),
-    )
-
-
-def _ordered_metrics(metrics: dict[str, float]) -> list[str]:
-    ordered = [name for name in _METRIC_ORDER if name in metrics]
-    ordered.extend(name for name in metrics if name not in _METRIC_ORDER)
-
-    return ordered
-
-
-def _markdown_table(
-    headers: Sequence[str],
-    rows: Sequence[Sequence[str]],
-) -> str:
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "| " + " | ".join("---" for _ in headers) + " |",
-    ]
-
-    for row in rows:
-        lines.append("| " + " | ".join(row) + " |")
-
-    return "\n".join(lines)
-
-
-def _format_score(value: float | None) -> str:
-    return "" if value is None else f"{value:.4f}"
-
-
-def _display(value: object | None) -> str:
-    return "n/a" if value is None else str(value)
-
-
-def _git_commit() -> str | None:
-    repository = Path(__file__).resolve().parents[3]
-
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=repository,
-        )
-
-    except OSError:
-        return None
-
-    if result.returncode != 0:
-        return None
-
-    return result.stdout.strip() or None
