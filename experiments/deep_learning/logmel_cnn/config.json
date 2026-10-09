@@ -50,6 +50,8 @@
     "metric_examples": 128,
     "metric_interval": 1,
     "class_weights": true,
+    "class_weight_power": 0.5,
+    "primary_instrument": null,
     "device": "auto"
   }
 }

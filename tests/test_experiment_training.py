@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,13 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from experiments.common.spec import SynthesisSpec
+from experiments.deep_learning.logmel_cnn.ablation import (
+    AblationArm,
+    ArmResult,
+    _winner,
+    run_ablation,
+    write_ablation_report,
+)
 from experiments.deep_learning.logmel_cnn.data import (
     build_features,
     build_model,
@@ -33,12 +41,14 @@ from experiments.deep_learning.logmel_cnn.spec import (
 )
 from experiments.deep_learning.logmel_cnn.train import (
     EXPERIMENT,
+    _class_weights,
     _train_epoch,
     flatten_config,
     resolve_device,
     train,
 )
-from scribr.representation import Melody
+from scribr.deep_learning import HOLD_CLASS, token_to_class
+from scribr.representation import HOLD_TOKEN, Melody, MelodyExample
 from scribr.synthesis import Instrument
 
 
@@ -136,12 +146,28 @@ def test_config_round_trips_through_json(tmp_path: Path) -> None:
         lambda: ModelSpec(dropout=1.0),
         lambda: OptimizationSpec(epochs=0),
         lambda: OptimizationSpec(metric_examples=0),
+        lambda: OptimizationSpec(class_weight_power=-0.1),
+        lambda: OptimizationSpec(class_weight_power=1.1),
+        lambda: OptimizationSpec(primary_instrument=""),
         lambda: OptimizationSpec(device=""),
     ],
 )
 def test_invalid_config_values_raise(build) -> None:
     with pytest.raises(ValueError):
         build()
+
+
+def test_primary_instrument_must_be_evaluated() -> None:
+    config = tiny_config()
+
+    with pytest.raises(ValueError):
+        replace(
+            config,
+            optimization=replace(
+                config.optimization,
+                primary_instrument="acoustic_guitar",
+            ),
+        )
 
 
 def test_flatten_config_uses_dot_separated_names() -> None:
@@ -166,6 +192,28 @@ def test_subset_fingerprint_is_stable_and_sensitive(
 
     assert subset_fingerprint(examples) == subset_fingerprint(examples)
     assert subset_fingerprint(examples[:-1]) != subset_fingerprint(examples)
+
+
+def test_class_weights_temper_the_inverse_frequency_correction() -> None:
+    examples = [
+        MelodyExample(
+            Melody(),
+            pitch_sequence=(60, HOLD_TOKEN, HOLD_TOKEN, HOLD_TOKEN),
+        )
+    ]
+    inverse = _class_weights(examples, power=1.0)
+    tempered = _class_weights(examples, power=0.5)
+    uniform = _class_weights(examples, power=0.0)
+
+    pitch = token_to_class(60)
+    hold = HOLD_CLASS
+
+    assert float(uniform.mean()) == pytest.approx(1.0)
+    assert float(tempered.mean()) == pytest.approx(1.0)
+    assert uniform[pitch] == pytest.approx(1.0)
+    assert uniform[hold] == pytest.approx(1.0)
+    assert inverse[hold] < tempered[hold] < 1.0
+    assert 1.0 < tempered[pitch] < inverse[pitch]
 
 
 def test_resolve_device_accepts_cpu() -> None:
@@ -302,6 +350,50 @@ def test_train_logs_run_and_writes_artifacts(
     assert len(client.list_artifacts(run.info.run_id)) == 3
 
 
+def test_train_selects_checkpoint_on_primary_instrument(
+    tmp_path: Path,
+    data_root: Path,
+) -> None:
+    config = tiny_config()
+    config = replace(
+        config,
+        optimization=replace(
+            config.optimization,
+            primary_instrument="piano",
+        ),
+    )
+    tracking_uri = tmp_path / "mlflow.db"
+
+    result = train(
+        config,
+        artifacts_dir=tmp_path / "artifacts",
+        run_name="primary",
+        tracking_uri=tracking_uri,
+        data_root=data_root,
+        device="cpu",
+        synthesizer_factory=fake_factory,
+    )
+    payload = torch.load(
+        result.best_checkpoint, map_location="cpu", weights_only=True
+    )
+    piano_scores = [
+        record["per_instrument"]["piano"]["F-measure_no_offset"]
+        for record in result.history
+        if "per_instrument" in record
+    ]
+
+    assert payload["metric"] == pytest.approx(max(piano_scores))
+
+    client = MlflowClient(tracking_uri=f"sqlite:///{tracking_uri}")
+    experiment = client.get_experiment_by_name(EXPERIMENT)
+
+    assert experiment is not None
+
+    runs = client.search_runs(experiment_ids=[experiment.experiment_id])
+
+    assert runs[0].data.tags["metric"] == "piano/F-measure_no_offset"
+
+
 def test_run_evaluation_writes_reports(
     tmp_path: Path,
     data_root: Path,
@@ -343,3 +435,77 @@ def test_run_evaluation_writes_reports(
     assert markdown_path.read_text(encoding="utf-8").startswith(
         "# test_run report (test)"
     )
+
+
+def _arm_result(name: str, score: float) -> ArmResult:
+    return ArmResult(
+        arm=AblationArm(name=name, power=0.5),
+        run_name=name,
+        artifacts_dir=name,
+        best_epoch=1,
+        best_score=score,
+        epoch_scores=((1, score),),
+    )
+
+
+def test_ablation_winner_reports_higher_score_and_ties() -> None:
+    inverse = _arm_result("inverse", 0.2)
+    tempered = _arm_result("tempered", 0.3)
+
+    assert _winner((inverse, tempered)) == "tempered"
+    assert _winner((inverse, _arm_result("tempered", 0.2))) == "tie"
+
+
+def test_run_ablation_trains_both_arms_and_writes_report(
+    tmp_path: Path,
+    data_root: Path,
+) -> None:
+    config = tiny_config()
+    ablation_dir = tmp_path / "ablation"
+
+    result = run_ablation(
+        config,
+        artifacts_dir=ablation_dir,
+        run_name="ab",
+        tracking_uri=tmp_path / "mlflow.db",
+        data_root=data_root,
+        device="cpu",
+        synthesizer_factory=fake_factory,
+    )
+
+    assert [arm.arm.name for arm in result.arms] == ["inverse", "tempered"]
+    assert [arm.arm.power for arm in result.arms] == [1.0, 0.5]
+    assert result.metric == "piano/F-measure_no_offset"
+    assert result.winner in {"inverse", "tempered", "tie"}
+    assert result.scores == {
+        arm.arm.name: arm.best_score for arm in result.arms
+    }
+
+    for arm_result in result.arms:
+        payload = torch.load(
+            Path(arm_result.artifacts_dir) / "best.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+        arm_config = payload["config"]
+
+        assert arm_result.epoch_scores
+        assert (
+            arm_config["optimization"]["class_weight_power"]
+            == arm_result.arm.power
+        )
+        assert arm_config["optimization"]["primary_instrument"] == "piano"
+
+    json_path, markdown_path = write_ablation_report(
+        result,
+        artifacts_dir=ablation_dir,
+        config=config,
+    )
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    markdown = markdown_path.read_text(encoding="utf-8")
+
+    assert data["primary_metric"] == "piano/F-measure_no_offset"
+    assert [arm["name"] for arm in data["arms"]] == ["inverse", "tempered"]
+    assert data["winner"] == result.winner
+    assert "Winner:" in markdown
+    assert "| Epoch | inverse | tempered |" in markdown
