@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from experiments.deep_learning.common.spec import TrainingConfig
-from experiments.deep_learning.logmel_cnn.data import (
+from experiments.deep_learning.logmel_cnn.pipeline import (
     build_features,
     build_model,
 )

@@ -9,10 +9,10 @@ import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
-from .evaluation import ExperimentEvaluation, group_counts
 from .markdown import display, format_score, markdown_table
 from .materialize import Manifest
 from .predictions import TextPredictions
+from .scoring import ExperimentEvaluation, group_counts
 from .synthesis import resolve_soundfont_path
 
 # Metric display order; anything else follows in the order it appears.

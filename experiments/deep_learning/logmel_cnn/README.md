@@ -155,14 +155,14 @@ test records).
 ```text
 experiments/deep_learning/logmel_cnn/
 ├── config.json  # the full training run's configuration
-├── data.py      # log-mel feature and CNN builders
+├── pipeline.py  # log-mel feature and CNN builders
 ├── train.py     # training entry point
 ├── ablation.py  # old vs tempered class weights
 ├── evaluate.py  # checkpoint scoring entry point
 └── artifacts/   # gitignored checkpoints and reports
 ```
 
-The shared training loop, evaluation, configuration, and CLI live in
+The shared training loop, inference, configuration, and CLI live in
 [`experiments/deep_learning/common`](../common/). See the
 [deep learning README](../README.md) for how to add an architecture.
 The model itself lives in `src/scribr/deep_learning/`, next to the

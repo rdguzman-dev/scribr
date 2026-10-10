@@ -1,6 +1,6 @@
 """Score trained models with `mir_eval` and write run reports.
 
-Scoring goes through `experiments.common.evaluation`, the same batch
+Scoring goes through `experiments.common.scoring`, the same batch
 scorer the human baseline uses, so numbers are comparable. Each
 instrument renders the same references, and the report keeps overall
 and per-instrument means plus the per-example rows.
@@ -19,13 +19,13 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from experiments.common.evaluation import (
+from experiments.common.markdown import display, format_score, markdown_table
+from experiments.common.report import git_commit, metric_headers, metric_table
+from experiments.common.scoring import (
     ExperimentEvaluation,
     evaluate_predictions,
     group_counts,
 )
-from experiments.common.markdown import display, format_score, markdown_table
-from experiments.common.report import git_commit, metric_headers, metric_table
 from scribr.deep_learning import (
     FeatureExtractor,
     SynthesizedMelodyDataset,

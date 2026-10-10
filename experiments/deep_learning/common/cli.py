@@ -28,7 +28,7 @@ from scribr.data import SPLITS
 from scribr.deep_learning import FeatureExtractor
 
 from .data import default_synthesizer_factory, load_examples
-from .evaluation import run_evaluation, write_report
+from .inference import run_evaluation, write_report
 from .spec import DataSpec, TrainingConfig
 from .training import EXPERIMENT, resolve_device, train
 

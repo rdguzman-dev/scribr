@@ -43,7 +43,7 @@ from .data import (
     load_examples,
     subset_fingerprint,
 )
-from .evaluation import run_evaluation
+from .inference import run_evaluation
 from .spec import OptimizationSpec, TrainingConfig
 
 EXPERIMENT = "scribr-deep-learning"

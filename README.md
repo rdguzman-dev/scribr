@@ -141,7 +141,7 @@ uv run pytest -m integration
 ```text
 experiments/
 ├── algorithmic/         # algorithmic transcription experiments
-├── common/              # shared experiment specs, materialization, evaluation
+├── common/              # shared experiment specs, materialization, scoring
 ├── deep_learning/       # supervised deep learning experiments
 ├── human_baseline/      # human transcription baseline
 └── llm/                 # LLM-based transcription experiments
