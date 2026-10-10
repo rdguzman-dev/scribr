@@ -22,7 +22,7 @@ PR descriptions and merge commit descriptions must use the same
 description and follow this structure:
 
 ```text
-Add ..., including:
+<Verb> ..., including:
 
 - ...
 ```
