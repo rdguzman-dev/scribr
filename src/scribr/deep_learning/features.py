@@ -8,6 +8,8 @@ model trained on one instrument is evaluated on another.
 
 from __future__ import annotations
 
+from typing import Protocol
+
 import numpy as np
 import torch
 import torchaudio
@@ -27,6 +29,27 @@ DEFAULT_NUM_FRAMES = 736
 
 # Floor for the standard deviation so silence does not get amplified.
 _EPSILON = 1e-5
+
+
+class FeatureExtractor(Protocol):
+    """Audio feature contract shared by training and inference.
+
+    Attributes:
+        sample_rate: Sample rate of the expected input waveform in Hz.
+        num_frames: Fixed length of the time axis, or `None` to keep
+            the natural length.
+    """
+
+    sample_rate: int
+    num_frames: int | None
+
+    def spectrogram(self, audio: np.ndarray | Tensor) -> Tensor:
+        """Extract features at their natural length."""
+        ...
+
+    def __call__(self, audio: np.ndarray | Tensor) -> Tensor:
+        """Extract features cropped or padded to `num_frames`."""
+        ...
 
 
 class LogMelSpectrogram:

@@ -119,3 +119,27 @@ def test_invalid_tempo_raises() -> None:
 
     with pytest.raises(ValueError):
         transcriber.transcribe(np.zeros(16, dtype=np.float32), 22_050, 0.0)
+
+
+def test_custom_decoder_is_used() -> None:
+    decoded: list[tuple[int, ...]] = []
+
+    def decode(classes: tuple[int, ...]) -> Melody:
+        decoded.append(tuple(classes))
+
+        return Melody(())
+
+    transcriber = DeepLearningTranscriber(
+        StubModel((60, NOTE_OFF_TOKEN)),
+        tiny_features(),
+        training_tempo=120.0,
+        device="cpu",
+        decode=decode,
+    )
+
+    melody = transcriber.transcribe(
+        np.zeros(4096, dtype=np.float32), 22_050, 120.0
+    )
+
+    assert melody == Melody(())
+    assert decoded
