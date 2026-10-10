@@ -100,15 +100,11 @@ Columns:
 * `duration_seconds`: how long the transcription took, recorded in seconds.
   Second-level precision is sufficient; small differences from the actual
   elapsed time are not meaningful.
-* `notes`: optional free text for anything that explains outside influences
-  or possible anomalies that affected the transcription time or accuracy
-  (for example, being sick). Leave blank when nothing applies. Quote the
-  field if it contains a comma.
 
 An example row:
 
 ```text
-001-acoustic_guitar,2026-09-28 18:00:00,2520,had a cold
+001-acoustic_guitar,2026-09-28 18:00:00,2520
 ```
 
 ## Score
