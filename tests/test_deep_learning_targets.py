@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+import torch
 
 from scribr.deep_learning import (
     HOLD_CLASS,
@@ -10,9 +11,11 @@ from scribr.deep_learning import (
     NUM_CLASSES,
     NUM_PITCH_CLASSES,
     class_to_token,
+    class_weights,
     classes_to_pitch_sequence,
     melody_from_classes,
     pitch_sequence_to_classes,
+    token_group_masks,
     token_to_class,
 )
 from scribr.representation import (
@@ -21,6 +24,7 @@ from scribr.representation import (
     HOLD_TOKEN,
     NOTE_OFF_TOKEN,
     Melody,
+    MelodyExample,
     decode_pitch_sequence,
 )
 
@@ -72,3 +76,36 @@ def test_melody_from_classes_matches_the_codec() -> None:
     assert melody_from_classes(classes) == Melody(
         decode_pitch_sequence(sequence)
     )
+
+
+def test_class_weights_temper_the_inverse_frequency_correction() -> None:
+    examples = [
+        MelodyExample(
+            Melody(),
+            pitch_sequence=(60, HOLD_TOKEN, HOLD_TOKEN, HOLD_TOKEN),
+        )
+    ]
+    inverse = class_weights(examples, power=1.0)
+    tempered = class_weights(examples, power=0.5)
+    uniform = class_weights(examples, power=0.0)
+
+    pitch = token_to_class(60)
+    hold = HOLD_CLASS
+
+    assert float(uniform.mean()) == pytest.approx(1.0)
+    assert float(tempered.mean()) == pytest.approx(1.0)
+    assert uniform[pitch] == pytest.approx(1.0)
+    assert uniform[hold] == pytest.approx(1.0)
+    assert inverse[hold] < tempered[hold] < 1.0
+    assert 1.0 < tempered[pitch] < inverse[pitch]
+
+
+def test_token_group_masks_partition_the_vocabulary() -> None:
+    targets = torch.tensor(
+        [0, HOLD_CLASS, NOTE_OFF_CLASS, NUM_PITCH_CLASSES - 1]
+    )
+    masks = dict(token_group_masks(targets))
+
+    assert masks["pitch"].tolist() == [True, False, False, True]
+    assert masks["hold"].tolist() == [False, True, False, False]
+    assert masks["note_off"].tolist() == [False, False, True, False]

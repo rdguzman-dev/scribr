@@ -1,4 +1,4 @@
-"""`Transcriber` backed by a trained `PitchSequenceCNN`.
+"""`Transcriber` backed by a per-step pitch-sequence classifier.
 
 Inference is three steps: extract natural-length log-mel features from
 the audio, stretch them onto the tempo grid the model was trained on,
@@ -8,6 +8,8 @@ model only ever sees the training feature layout.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -16,7 +18,7 @@ from torch import Tensor, nn
 
 from ..representation import Melody
 from ..synthesis.synthesizer import DEFAULT_TEMPO_BPM
-from .features import LogMelSpectrogram, fix_length
+from .features import FeatureExtractor, fix_length
 from .targets import melody_from_classes
 
 
@@ -24,20 +26,23 @@ class DeepLearningTranscriber:
     """Transcribe mono audio into a `Melody` with a pitch-sequence model.
 
     Args:
-        model: Trained `PitchSequenceCNN`.
+        model: Trained model returning `(batch, steps, classes)` logits.
         features: Feature extractor the model was trained with.
         training_tempo: Tempo in BPM used during training. Audio
             rendered at another tempo is resampled onto that grid.
         device: Torch device to run inference on.
+        decode: Maps per-step class indices to a `Melody`. Defaults to
+            the dataset pitch-sequence codec.
     """
 
     def __init__(
         self,
         model: nn.Module,
-        features: LogMelSpectrogram,
+        features: FeatureExtractor,
         *,
         training_tempo: float = DEFAULT_TEMPO_BPM,
         device: str | torch.device = "cpu",
+        decode: Callable[[Sequence[int]], Melody] = melody_from_classes,
     ) -> None:
         if training_tempo <= 0:
             raise ValueError("training_tempo must be positive")
@@ -45,6 +50,7 @@ class DeepLearningTranscriber:
         self.features = features
         self.training_tempo = float(training_tempo)
         self.device = torch.device(device)
+        self.decode = decode
         self.model = model.to(self.device).eval()
 
     def transcribe(
@@ -89,7 +95,7 @@ class DeepLearningTranscriber:
         with torch.no_grad():
             logits = self.model(features.unsqueeze(0).to(self.device))
 
-        return melody_from_classes(logits.argmax(dim=-1)[0].tolist())
+        return self.decode(logits.argmax(dim=-1)[0].tolist())
 
 
 def _stretch_tempo(features: Tensor, factor: float) -> Tensor:

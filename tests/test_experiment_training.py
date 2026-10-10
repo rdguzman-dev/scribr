@@ -1,4 +1,4 @@
-"""Tests for the log-mel CNN training experiment."""
+"""Tests for the deep learning training experiment infrastructure."""
 
 from __future__ import annotations
 
@@ -15,6 +15,27 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from experiments.common.spec import SynthesisSpec
+from experiments.deep_learning.common.data import (
+    default_synthesizer_factory,
+    load_examples,
+    subset_fingerprint,
+)
+from experiments.deep_learning.common.evaluation import (
+    run_evaluation,
+    write_report,
+)
+from experiments.deep_learning.common.spec import (
+    DataSpec,
+    OptimizationSpec,
+    TrainingConfig,
+)
+from experiments.deep_learning.common.training import (
+    EXPERIMENT,
+    _train_epoch,
+    flatten_config,
+    resolve_device,
+    train,
+)
 from experiments.deep_learning.logmel_cnn.ablation import (
     AblationArm,
     ArmResult,
@@ -25,31 +46,9 @@ from experiments.deep_learning.logmel_cnn.ablation import (
 from experiments.deep_learning.logmel_cnn.data import (
     build_features,
     build_model,
-    default_synthesizer_factory,
-    load_examples,
-    subset_fingerprint,
 )
-from experiments.deep_learning.logmel_cnn.evaluation import (
-    run_evaluation,
-    write_report,
-)
-from experiments.deep_learning.logmel_cnn.spec import (
-    DataSpec,
-    FeaturesSpec,
-    ModelSpec,
-    OptimizationSpec,
-    TrainingConfig,
-)
-from experiments.deep_learning.logmel_cnn.train import (
-    EXPERIMENT,
-    _class_weights,
-    _train_epoch,
-    flatten_config,
-    resolve_device,
-    train,
-)
-from scribr.deep_learning import HOLD_CLASS, token_to_class
-from scribr.representation import HOLD_TOKEN, Melody, MelodyExample
+from scribr.deep_learning import NUM_CLASSES
+from scribr.representation import STEPS_PER_MELODY, Melody
 from scribr.synthesis import Instrument
 
 
@@ -101,17 +100,17 @@ def tiny_config() -> TrainingConfig:
             gain=1.0,
             release_tail_seconds=0.5,
         ),
-        features=FeaturesSpec(
-            sample_rate=22_050,
-            n_fft=256,
-            hop_length=64,
-            n_mels=16,
-            f_min=27.5,
-            f_max=8_000.0,
-            top_db=80.0,
-            num_frames=32,
-        ),
-        model=ModelSpec(channels=(4, 8), dropout=0.0),
+        features={
+            "sample_rate": 22_050,
+            "n_fft": 256,
+            "hop_length": 64,
+            "n_mels": 16,
+            "f_min": 27.5,
+            "f_max": 8_000.0,
+            "top_db": 80.0,
+            "num_frames": 32,
+        },
+        model={"channels": [4, 8], "dropout": 0.0},
         optimization=OptimizationSpec(
             seed=7,
             batch_size=2,
@@ -143,8 +142,6 @@ def test_config_round_trips_through_json(tmp_path: Path) -> None:
         lambda: DataSpec(split="bogus"),
         lambda: DataSpec(max_examples=0),
         lambda: DataSpec(num_workers=-1),
-        lambda: ModelSpec(channels=()),
-        lambda: ModelSpec(dropout=1.0),
         lambda: OptimizationSpec(epochs=0),
         lambda: OptimizationSpec(metric_examples=0),
         lambda: OptimizationSpec(class_weight_power=-0.1),
@@ -183,7 +180,7 @@ def test_mismatched_sample_rates_are_rejected() -> None:
     with pytest.raises(ValueError, match="sample_rate"):
         replace(
             config,
-            features=replace(config.features, sample_rate=16_000),
+            features={**config.features, "sample_rate": 16_000},
         )
 
 
@@ -221,28 +218,6 @@ def test_default_synthesizer_factory_binds_soundfont_and_synthesis(
 
     assert factory.soundfont_path == soundfont
     assert factory.synthesis == config.synthesis
-
-
-def test_class_weights_temper_the_inverse_frequency_correction() -> None:
-    examples = [
-        MelodyExample(
-            Melody(),
-            pitch_sequence=(60, HOLD_TOKEN, HOLD_TOKEN, HOLD_TOKEN),
-        )
-    ]
-    inverse = _class_weights(examples, power=1.0)
-    tempered = _class_weights(examples, power=0.5)
-    uniform = _class_weights(examples, power=0.0)
-
-    pitch = token_to_class(60)
-    hold = HOLD_CLASS
-
-    assert float(uniform.mean()) == pytest.approx(1.0)
-    assert float(tempered.mean()) == pytest.approx(1.0)
-    assert uniform[pitch] == pytest.approx(1.0)
-    assert uniform[hold] == pytest.approx(1.0)
-    assert inverse[hold] < tempered[hold] < 1.0
-    assert 1.0 < tempered[pitch] < inverse[pitch]
 
 
 def test_resolve_device_accepts_cpu() -> None:
@@ -333,6 +308,8 @@ def test_train_logs_run_and_writes_artifacts(
 
     result = train(
         config,
+        build_features=build_features,
+        build_model=build_model,
         artifacts_dir=artifacts_dir,
         run_name="unit",
         tracking_uri=tracking_uri,
@@ -395,6 +372,8 @@ def test_train_selects_checkpoint_on_primary_instrument(
 
     result = train(
         config,
+        build_features=build_features,
+        build_model=build_model,
         artifacts_dir=tmp_path / "artifacts",
         run_name="primary",
         tracking_uri=tracking_uri,
@@ -423,13 +402,67 @@ def test_train_selects_checkpoint_on_primary_instrument(
     assert runs[0].data.tags["metric"] == "piano/F-measure_no_offset"
 
 
+class StubFeatures:
+    """Feature extractor with a fixed rectangular output."""
+
+    sample_rate = 22_050
+
+    def __init__(self, n_features: int = 4, num_frames: int = 4) -> None:
+        self.n_features = n_features
+        self.num_frames = num_frames
+
+    def spectrogram(self, audio):
+        return torch.zeros(self.n_features, 1)
+
+    def __call__(self, audio):
+        return torch.zeros(self.n_features, self.num_frames)
+
+
+class StubModel(nn.Module):
+    """Architecture-independent stand-in that predicts constant logits."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = nn.Linear(4, NUM_CLASSES)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        logits = self.linear(features.mean(dim=-1))
+
+        return logits.unsqueeze(1).expand(-1, STEPS_PER_MELODY, -1)
+
+
+def test_train_accepts_substituted_builders(
+    tmp_path: Path,
+    data_root: Path,
+) -> None:
+    config = replace(
+        tiny_config(),
+        features={"sample_rate": 22_050, "n_mels": 4},
+        model={"hidden": 4},
+    )
+
+    result = train(
+        config,
+        build_features=lambda spec: StubFeatures(),
+        build_model=lambda spec, features: StubModel(),
+        artifacts_dir=tmp_path / "artifacts",
+        run_name="stub",
+        tracking_uri=tmp_path / "mlflow.db",
+        data_root=data_root,
+        device="cpu",
+        synthesizer_factory=fake_factory,
+    )
+
+    assert result.best_checkpoint.is_file()
+
+
 def test_run_evaluation_writes_reports(
     tmp_path: Path,
     data_root: Path,
 ) -> None:
     config = tiny_config()
     features = build_features(config.features)
-    model = build_model(config.model, n_mels=features.n_mels)
+    model = build_model(config.model, config.features)
     examples = load_examples(
         DataSpec(split="test", max_examples=2, num_workers=0),
         root=data_root,

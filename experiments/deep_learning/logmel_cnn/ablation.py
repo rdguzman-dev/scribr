@@ -35,10 +35,15 @@ from experiments.common.tracking import (
     log_params,
     start_run,
 )
+from experiments.deep_learning.common.spec import TrainingConfig
+from experiments.deep_learning.common.training import (
+    EXPERIMENT,
+    TrainingResult,
+    train,
+)
 from scribr.synthesis import Instrument, Synthesizer
 
-from .spec import TrainingConfig
-from .train import EXPERIMENT, TrainingResult, train
+from .data import build_features, build_model
 
 _DIR = Path(__file__).resolve().parent
 _CONFIG_PATH = _DIR / "config.json"
@@ -265,6 +270,8 @@ def _train_arm(
     )
     result = train(
         arm_config,
+        build_features=build_features,
+        build_model=build_model,
         artifacts_dir=artifacts_dir,
         run_name=run_name,
         tracking_uri=tracking_uri,

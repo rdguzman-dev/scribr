@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 
 from ..representation import MelodyExample
 from ..synthesis import Synthesizer
-from .features import LogMelSpectrogram
+from .features import FeatureExtractor
 from .targets import pitch_sequence_to_classes
 
 
@@ -44,7 +44,7 @@ class SynthesizedMelodyDataset(Dataset):
         self,
         examples: Sequence[MelodyExample],
         synthesizer_factory: Callable[[], Synthesizer],
-        features: LogMelSpectrogram,
+        features: FeatureExtractor,
     ) -> None:
         self.examples = tuple(examples)
         self.synthesizer_factory = synthesizer_factory

@@ -10,6 +10,7 @@ from .features import (
     DEFAULT_NUM_FRAMES,
     DEFAULT_SAMPLE_RATE,
     DEFAULT_TOP_DB,
+    FeatureExtractor,
     LogMelSpectrogram,
     fix_length,
 )
@@ -24,9 +25,11 @@ from .targets import (
     NUM_CLASSES,
     NUM_PITCH_CLASSES,
     class_to_token,
+    class_weights,
     classes_to_pitch_sequence,
     melody_from_classes,
     pitch_sequence_to_classes,
+    token_group_masks,
     token_to_class,
 )
 from .transcriber import DeepLearningTranscriber
@@ -43,6 +46,7 @@ __all__ = [
     "DEFAULT_SAMPLE_RATE",
     "DEFAULT_TOP_DB",
     "DeepLearningTranscriber",
+    "FeatureExtractor",
     "HOLD_CLASS",
     "LogMelSpectrogram",
     "NOTE_OFF_CLASS",
@@ -51,9 +55,11 @@ __all__ = [
     "PitchSequenceCNN",
     "SynthesizedMelodyDataset",
     "class_to_token",
+    "class_weights",
     "classes_to_pitch_sequence",
     "fix_length",
     "melody_from_classes",
     "pitch_sequence_to_classes",
+    "token_group_masks",
     "token_to_class",
 ]

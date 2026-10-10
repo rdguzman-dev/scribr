@@ -1,9 +1,11 @@
-"""Frozen training configuration with JSON persistence.
+"""Shared training configuration with JSON persistence.
 
-The schema mirrors `experiments.common.spec`: plain dataclasses, one
-`from_dict`/`to_dict` pair each, and a `TrainingConfig` that loads and
-saves the whole thing. The checkpoint embeds this configuration, so an
-evaluation can rebuild the exact model without a separate config file.
+The schema mirrors `experiments.common.spec`: plain dataclasses with a
+`from_dict`/`to_dict` pair. `TrainingConfig` is architecture-agnostic;
+the `features` and `model` sections are plain mappings that each
+experiment's builders turn into a feature extractor and an `nn.Module`.
+The checkpoint embeds the whole configuration, so an evaluation can
+rebuild the exact model without a separate config file.
 """
 
 from __future__ import annotations
@@ -15,18 +17,6 @@ from typing import Any, Mapping
 
 from experiments.common.spec import SynthesisSpec
 from scribr.data import SPLITS
-from scribr.deep_learning import (
-    DEFAULT_CHANNELS,
-    DEFAULT_DROPOUT,
-    DEFAULT_F_MAX,
-    DEFAULT_F_MIN,
-    DEFAULT_HOP_LENGTH,
-    DEFAULT_N_FFT,
-    DEFAULT_N_MELS,
-    DEFAULT_NUM_FRAMES,
-    DEFAULT_SAMPLE_RATE,
-    DEFAULT_TOP_DB,
-)
 from scribr.synthesis.instruments import Instrument
 
 
@@ -74,87 +64,6 @@ class DataSpec:
             "split": self.split,
             "max_examples": self.max_examples,
             "num_workers": self.num_workers,
-        }
-
-
-@dataclass(frozen=True, slots=True)
-class FeaturesSpec:
-    """Log-mel feature extraction parameters.
-
-    Field values and validation come from `LogMelSpectrogram`; this
-    dataclass only makes the parameters serializable.
-    """
-
-    sample_rate: int = DEFAULT_SAMPLE_RATE
-    n_fft: int = DEFAULT_N_FFT
-    hop_length: int = DEFAULT_HOP_LENGTH
-    n_mels: int = DEFAULT_N_MELS
-    f_min: float = DEFAULT_F_MIN
-    f_max: float = DEFAULT_F_MAX
-    top_db: float = DEFAULT_TOP_DB
-    num_frames: int = DEFAULT_NUM_FRAMES
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> FeaturesSpec:
-        """Build a spec from its JSON-compatible mapping."""
-        return cls(
-            sample_rate=data["sample_rate"],
-            n_fft=data["n_fft"],
-            hop_length=data["hop_length"],
-            n_mels=data["n_mels"],
-            f_min=data["f_min"],
-            f_max=data["f_max"],
-            top_db=data["top_db"],
-            num_frames=data["num_frames"],
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return the spec as a JSON-compatible mapping."""
-        return {
-            "sample_rate": self.sample_rate,
-            "n_fft": self.n_fft,
-            "hop_length": self.hop_length,
-            "n_mels": self.n_mels,
-            "f_min": self.f_min,
-            "f_max": self.f_max,
-            "top_db": self.top_db,
-            "num_frames": self.num_frames,
-        }
-
-
-@dataclass(frozen=True, slots=True)
-class ModelSpec:
-    """`PitchSequenceCNN` shape parameters."""
-
-    channels: tuple[int, ...] = DEFAULT_CHANNELS
-    dropout: float = DEFAULT_DROPOUT
-
-    def __post_init__(self) -> None:
-        channels = tuple(int(channel) for channel in self.channels)
-        object.__setattr__(self, "channels", channels)
-
-        if not channels:
-            raise ValueError("channels must contain at least one block")
-
-        if any(channel < 1 for channel in channels):
-            raise ValueError("channels must be positive")
-
-        if not 0.0 <= self.dropout < 1.0:
-            raise ValueError("dropout must be in [0, 1)")
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> ModelSpec:
-        """Build a spec from its JSON-compatible mapping."""
-        return cls(
-            channels=tuple(data["channels"]),
-            dropout=data["dropout"],
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return the spec as a JSON-compatible mapping."""
-        return {
-            "channels": list(self.channels),
-            "dropout": self.dropout,
         }
 
 
@@ -272,12 +181,17 @@ class OptimizationSpec:
 class TrainingConfig:
     """Full configuration for one training run.
 
+    `features` and `model` are validated by the experiment's builders and
+    by the feature extractor and model constructors they call.
+
     Attributes:
         name: Experiment name, used for the run and report titles.
         instrument: Instrument used to synthesize training audio.
         evaluation_instruments: Instruments scored by the metric pass.
             Training on one instrument and evaluating on several turns
             the evaluation into a timbre-transfer check.
+        features: Feature extractor parameters.
+        model: Model architecture parameters.
     """
 
     name: str
@@ -286,8 +200,8 @@ class TrainingConfig:
     dataset: DataSpec
     validation: DataSpec
     synthesis: SynthesisSpec
-    features: FeaturesSpec
-    model: ModelSpec
+    features: Mapping[str, Any]
+    model: Mapping[str, Any]
     optimization: OptimizationSpec
 
     def __post_init__(self) -> None:
@@ -307,6 +221,8 @@ class TrainingConfig:
         object.__setattr__(
             self, "evaluation_instruments", evaluation_instruments
         )
+        object.__setattr__(self, "features", dict(self.features))
+        object.__setattr__(self, "model", dict(self.model))
 
         if not evaluation_instruments:
             raise ValueError("at least one evaluation instrument is required")
@@ -321,11 +237,16 @@ class TrainingConfig:
                 "primary_instrument must be one of evaluation_instruments"
             )
 
-        if self.synthesis.sample_rate != self.features.sample_rate:
+        feature_sample_rate = self.features.get("sample_rate")
+
+        if feature_sample_rate is None:
+            raise ValueError("features.sample_rate is required")
+
+        if self.synthesis.sample_rate != feature_sample_rate:
             raise ValueError(
                 "synthesis.sample_rate and features.sample_rate must match; "
                 f"got {self.synthesis.sample_rate} and "
-                f"{self.features.sample_rate}"
+                f"{feature_sample_rate}"
             )
 
     @classmethod
@@ -338,8 +259,8 @@ class TrainingConfig:
             dataset=DataSpec.from_dict(data["dataset"]),
             validation=DataSpec.from_dict(data["validation"]),
             synthesis=SynthesisSpec.from_dict(data["synthesis"]),
-            features=FeaturesSpec.from_dict(data["features"]),
-            model=ModelSpec.from_dict(data["model"]),
+            features=data["features"],
+            model=data["model"],
             optimization=OptimizationSpec.from_dict(data["optimization"]),
         )
 
@@ -354,8 +275,8 @@ class TrainingConfig:
             "dataset": self.dataset.to_dict(),
             "validation": self.validation.to_dict(),
             "synthesis": self.synthesis.to_dict(),
-            "features": self.features.to_dict(),
-            "model": self.model.to_dict(),
+            "features": dict(self.features),
+            "model": dict(self.model),
             "optimization": self.optimization.to_dict(),
         }
 
