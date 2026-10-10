@@ -12,7 +12,7 @@ Apply exactly one:
 - `📘 docs`: documentation only.
 - `♻️ refactor`: internal change that keeps behavior the same.
 - `✨ feature`: a new capability.
-- `🔬 experiment`: something to try, with an uncertain outcome.
+- `🔬 experiment`: set up an experiment.
 
 ## Priority
 
@@ -33,7 +33,7 @@ Write the title in the imperative mood, same as a commit subject.
 Keep the description brief, but include what a maintainer or their agent needs
 to act on it: the problem or goal, the code it applies to, and any known
 constraints. Leave out background that the referenced code or docs already
-provide.
+provide. Surround code-like identifiers in back ticks. For example:
 
 ```bash
 gh issue create \
@@ -41,5 +41,5 @@ gh issue create \
   --label "🐛 bug" \
   --label "🟡 Mid Priority" \
   --label "👀 Needs Review" \
-  --body "load_dataset raises a bare AssertionError when a split is missing, which hides the split name. Raise ValueError with the split in the message so callers can tell which input was wrong."
+  --body "`load_dataset` raises a bare `AssertionError` when a split is missing, which hides the split name. Raise `ValueError` with the split in the message so callers can tell which input was wrong."
 ```
