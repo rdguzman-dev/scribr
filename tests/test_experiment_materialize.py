@@ -51,7 +51,6 @@ class ListDataset:
 
 def make_spec(
     *,
-    prefix_size: int = 4,
     sample_size: int = 2,
     instruments: tuple[Instrument, ...] = INSTRUMENTS,
 ) -> ExperimentSpec:
@@ -59,7 +58,6 @@ def make_spec(
         experiment="human_baseline",
         dataset=DatasetSpec(
             split="test",
-            prefix_size=prefix_size,
             sample_size=sample_size,
         ),
         instruments=instruments,
@@ -116,14 +114,14 @@ def test_materialize_writes_manifest_wav_and_reference(
 
         parsed = melody_from_text(reference_path.read_text())
 
-        assert parsed == candidates[example.candidate_index].melody
+        assert parsed == candidates[example.index].melody
         assert example.num_notes == len(parsed)
         assert example.program == example.instrument.program
 
 
 def test_selection_and_round_robin_assignment(tmp_path: Path) -> None:
     dataset = ListDataset(make_examples(6))
-    spec = make_spec(prefix_size=6, sample_size=5)
+    spec = make_spec(sample_size=5)
 
     manifest = materialize(
         spec,
@@ -132,13 +130,6 @@ def test_selection_and_round_robin_assignment(tmp_path: Path) -> None:
         synthesizers=make_synthesizers(),
     )
 
-    assert [example.candidate_index for example in manifest.examples] == [
-        0,
-        1,
-        2,
-        3,
-        4,
-    ]
     assert [example.index for example in manifest.examples] == [0, 1, 2, 3, 4]
     assert [example.instrument for example in manifest.examples] == [
         Instrument.PIANO,
@@ -156,11 +147,11 @@ def test_selection_and_round_robin_assignment(tmp_path: Path) -> None:
     ]
 
 
-def test_too_few_candidates_raises(tmp_path: Path) -> None:
+def test_too_few_examples_raises(tmp_path: Path) -> None:
     dataset = ListDataset(make_examples(2))
-    spec = make_spec(prefix_size=4, sample_size=3)
+    spec = make_spec(sample_size=3)
 
-    with pytest.raises(ValueError, match="only 2 candidate"):
+    with pytest.raises(ValueError, match="only 2 example"):
         materialize(
             spec,
             tmp_path,

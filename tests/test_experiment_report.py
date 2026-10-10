@@ -60,7 +60,6 @@ def make_manifest() -> Manifest:
             ManifestExample(
                 id=example_id(index),
                 index=index,
-                candidate_index=index,
                 instrument=example_instrument(index),
                 program=example_instrument(index).program,
                 wav=f"wav/{example_id(index)}.wav",

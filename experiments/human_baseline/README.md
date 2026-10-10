@@ -4,10 +4,6 @@ This experiment measures how well a person can transcribe the 4 Bars
 Monophonic Melodies dataset by ear. It has two phases. Phase 1 materializes
 the first 20 test melodies as WAV files with reference note tables. Phase 2
 parses the hand-written note tables and scores them against the references.
-The result is the reference point for machine approaches.
-
-Dataset melodies are 4 bars of 4/4: 16 quarter-note beats, quantized to a
-0.25-beat grid. Audio is rendered at 120 BPM, so one beat is 0.5 seconds.
 
 ## Materialize
 
@@ -21,8 +17,8 @@ uv run python -m experiments.human_baseline.materialize
 
 `--soundfont PATH` overrides the environment variable.
 
-The command takes the first 20 examples from the first 1,000 test records and
-assigns the four instruments round robin, 5 examples each. It writes:
+The command takes the first 20 examples from the test split and assigns the
+four instruments round robin, 5 examples each. It writes:
 
 ```text
 artifacts/
@@ -32,8 +28,8 @@ artifacts/
 ```
 
 Running it again reuses the existing manifest; `--force` rebuilds
-everything. The manifest records the config, the selected candidate indices,
-and file hashes. It holds no timestamps or filesystem paths, so the same
+everything. The manifest records the config, the selected indices, and
+file hashes. It holds no timestamps or filesystem paths, so the same
 inputs always produce the same files. The WAV directory is gitignored; the
 references, manifest, and transcriptions are committed.
 
@@ -104,15 +100,11 @@ Columns:
 * `duration_seconds`: how long the transcription took, recorded in seconds.
   Second-level precision is sufficient; small differences from the actual
   elapsed time are not meaningful.
-* `notes`: optional free text for anything that explains outside influences
-  or possible anomalies that affected the transcription time or accuracy
-  (for example, being sick). Leave blank when nothing applies. Quote the
-  field if it contains a comma.
 
 An example row:
 
 ```text
-001-acoustic_guitar,2026-09-28 18:00:00,2520,had a cold
+001-acoustic_guitar,2026-09-28 18:00:00,2520
 ```
 
 ## Score

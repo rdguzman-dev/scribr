@@ -2,7 +2,6 @@
   "experiment": "human_baseline",
   "dataset": {
     "split": "test",
-    "prefix_size": 1000,
     "sample_size": 20
   },
   "instruments": [
