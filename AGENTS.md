@@ -4,7 +4,7 @@ Scribr is a project exploring automated transcription of quantized
 monophonic music. Prioritize clarity, correctness, and understandability
 over unnecessary abstraction or cleverness.
 
-Before making changes, read the relevant documentation in docs/ and follow its
+Before making changes, read the relevant documentation in `docs/` and follow its
 conventions:
 
 - [Architecture](docs/architecture.md)
