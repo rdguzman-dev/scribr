@@ -10,6 +10,6 @@
 - Private helpers generally do not need docstrings unless their behavior
   is non-obvious or there is an important implementation detail to explain.
 - For anything not listed above, default to the PEP 8 guidelines.
-- Only add `from __future__ import annotations` whend needed, such as to
+- Only add `from __future__ import annotations` when needed, such as to
   support forward references or avoid runtimes annotation evaluation issues.
   Do not add it by default to every module.
