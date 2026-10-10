@@ -21,8 +21,8 @@ uv run python -m experiments.human_baseline.materialize
 
 `--soundfont PATH` overrides the environment variable.
 
-The command takes the first 20 examples from the first 1,000 test records and
-assigns the four instruments round robin, 5 examples each. It writes:
+The command takes the first 20 examples from the test split and assigns the
+four instruments round robin, 5 examples each. It writes:
 
 ```text
 artifacts/
@@ -32,8 +32,8 @@ artifacts/
 ```
 
 Running it again reuses the existing manifest; `--force` rebuilds
-everything. The manifest records the config, the selected candidate indices,
-and file hashes. It holds no timestamps or filesystem paths, so the same
+everything. The manifest records the config, the selected indices, and
+file hashes. It holds no timestamps or filesystem paths, so the same
 inputs always produce the same files. The WAV directory is gitignored; the
 references, manifest, and transcriptions are committed.
 

@@ -25,9 +25,10 @@ from scribr.wav import write_wav
 from .spec import ExperimentSpec
 from .synthesis import SynthesizerFactory, resolve_soundfont_path
 
-# Version 2 selects the leading candidates instead of a seeded random
-# draw and drops `seed` from the dataset config.
-SCHEMA_VERSION = 2
+# Version 2 selected the leading candidates instead of a seeded random
+# draw and dropped `seed` from the dataset config. Version 3 selects the
+# first `sample_size` records of the split and drops `prefix_size`.
+SCHEMA_VERSION = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,7 +38,6 @@ class ManifestExample:
     Attributes:
         id: Stable example ID, `<sample index>-<instrument>`.
         index: Position in the selection order.
-        candidate_index: Position in the candidate prefix.
         instrument: Instrument the example was rendered with.
         program: General MIDI program number of the instrument.
         wav: WAV path relative to the artifacts directory.
@@ -50,7 +50,6 @@ class ManifestExample:
 
     id: str
     index: int
-    candidate_index: int
     instrument: Instrument
     program: int
     wav: str
@@ -65,7 +64,6 @@ class ManifestExample:
         return cls(
             id=data["id"],
             index=data["index"],
-            candidate_index=data["candidate_index"],
             instrument=Instrument(data["instrument"]),
             program=data["program"],
             wav=data["wav"],
@@ -80,7 +78,6 @@ class ManifestExample:
         return {
             "id": self.id,
             "index": self.index,
-            "candidate_index": self.candidate_index,
             "instrument": self.instrument.value,
             "program": self.program,
             "wav": self.wav,
@@ -162,8 +159,8 @@ def materialize(
 
     An existing manifest is reused when it matches `spec`; pass
     `force=True` to rebuild the artifacts. Selection takes the first
-    `spec.dataset.sample_size` records of the candidate prefix, so
-    identical inputs always produce identical artifacts.
+    `spec.dataset.sample_size` records of the split, so identical inputs
+    always produce identical artifacts.
 
     Args:
         spec: Experiment configuration.
@@ -184,7 +181,7 @@ def materialize(
 
     Raises:
         ValueError: If the existing manifest was built from a different
-            config, or fewer than `sample_size` candidates exist.
+            config, or the split has fewer than `sample_size` examples.
     """
     artifacts = Path(artifacts_dir)
     manifest_path = artifacts / "manifest.json"
@@ -208,17 +205,14 @@ def materialize(
     if dataset is None:
         dataset = MelodyDataset(split=spec.dataset.split)
 
-    candidates = list(islice(dataset, spec.dataset.prefix_size))
+    examples = list(islice(dataset, spec.dataset.sample_size))
 
-    if len(candidates) < spec.dataset.sample_size:
+    if len(examples) < spec.dataset.sample_size:
         raise ValueError(
-            f"only {len(candidates)} candidate(s) in the first "
-            f"{spec.dataset.prefix_size} record(s); "
+            f"{spec.dataset.split!r} split contains only "
+            f"{len(examples)} example(s); "
             f"sample_size is {spec.dataset.sample_size}"
         )
-
-    # Record where each example came from in the candidate prefix.
-    chosen_indices = range(spec.dataset.sample_size)
 
     if synthesizers is None:
         resolved_soundfont = resolve_soundfont_path(soundfont_path)
@@ -239,8 +233,7 @@ def materialize(
 
     manifest_examples: list[ManifestExample] = []
 
-    for index, candidate_index in enumerate(chosen_indices):
-        example = candidates[candidate_index]
+    for index, example in enumerate(examples):
         instrument = spec.instruments[index % len(spec.instruments)]
         example_id = f"{index:03d}-{instrument.value}"
 
@@ -257,7 +250,6 @@ def materialize(
             ManifestExample(
                 id=example_id,
                 index=index,
-                candidate_index=candidate_index,
                 instrument=instrument,
                 program=instrument.program,
                 wav=f"wav/{example_id}.wav",

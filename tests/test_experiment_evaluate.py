@@ -35,7 +35,6 @@ def make_manifest(ids: tuple[str, ...]) -> Manifest:
             ManifestExample(
                 id=example_id,
                 index=index,
-                candidate_index=index,
                 instrument=Instrument.PIANO,
                 program=0,
                 wav=f"wav/{example_id}.wav",

@@ -26,9 +26,7 @@ def test_committed_config_loads() -> None:
     spec = ExperimentSpec.load(CONFIG_PATH)
 
     assert spec.experiment == "human_baseline"
-    assert spec.dataset == DatasetSpec(
-        split="test", prefix_size=1000, sample_size=20
-    )
+    assert spec.dataset == DatasetSpec(split="test", sample_size=20)
     assert spec.instruments == (
         Instrument.PIANO,
         Instrument.ACOUSTIC_GUITAR,
@@ -59,9 +57,6 @@ def test_json_round_trip(tmp_path: Path) -> None:
 def test_dataset_validation_errors() -> None:
     with pytest.raises(ValueError, match="split"):
         DatasetSpec(split="dev")
-
-    with pytest.raises(ValueError, match="prefix_size"):
-        DatasetSpec(prefix_size=0)
 
     with pytest.raises(ValueError, match="sample_size"):
         DatasetSpec(sample_size=0)

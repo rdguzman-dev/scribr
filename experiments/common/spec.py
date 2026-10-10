@@ -24,12 +24,10 @@ class DatasetSpec:
 
     Attributes:
         split: Dataset split to draw from.
-        prefix_size: Number of leading records treated as candidates.
-        sample_size: Number of leading candidates to select.
+        sample_size: Number of leading records to select.
     """
 
     split: str = "test"
-    prefix_size: int = 1000
     sample_size: int = 20
 
     def __post_init__(self) -> None:
@@ -39,9 +37,6 @@ class DatasetSpec:
                 f"{', '.join(SPLITS)}"
             )
 
-        if self.prefix_size < 1:
-            raise ValueError("prefix_size must be positive")
-
         if self.sample_size < 1:
             raise ValueError("sample_size must be positive")
 
@@ -50,7 +45,6 @@ class DatasetSpec:
         """Build a spec from its JSON-compatible mapping."""
         return cls(
             split=data["split"],
-            prefix_size=data["prefix_size"],
             sample_size=data["sample_size"],
         )
 
@@ -58,7 +52,6 @@ class DatasetSpec:
         """Return the spec as a JSON-compatible mapping."""
         return {
             "split": self.split,
-            "prefix_size": self.prefix_size,
             "sample_size": self.sample_size,
         }
 
