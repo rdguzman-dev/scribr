@@ -9,7 +9,7 @@ conventions:
 
 - [Architecture](docs/architecture.md)
 - [Code style](docs/code-style.md)
-- [Git conventions](docs/git-conventions.md)
+- [Git](docs/git/README.md)
 - [Working style](docs/working-style.md)
 - [Dependencies](docs/dependencies.md)
 
