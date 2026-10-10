@@ -4,10 +4,6 @@ This experiment measures how well a person can transcribe the 4 Bars
 Monophonic Melodies dataset by ear. It has two phases. Phase 1 materializes
 the first 20 test melodies as WAV files with reference note tables. Phase 2
 parses the hand-written note tables and scores them against the references.
-The result is the reference point for machine approaches.
-
-Dataset melodies are 4 bars of 4/4: 16 quarter-note beats, quantized to a
-0.25-beat grid. Audio is rendered at 120 BPM, so one beat is 0.5 seconds.
 
 ## Materialize
 
