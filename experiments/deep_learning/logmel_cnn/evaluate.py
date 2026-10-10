@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from experiments.deep_learning.common.cli import evaluate_main
 
-from .data import build_features, build_model
+from .pipeline import build_features, build_model
 
 if __name__ == "__main__":
     evaluate_main(

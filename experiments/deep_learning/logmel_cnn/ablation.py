@@ -43,7 +43,7 @@ from experiments.deep_learning.common.training import (
 )
 from scribr.synthesis import Instrument, Synthesizer
 
-from .data import build_features, build_model
+from .pipeline import build_features, build_model
 
 _DIR = Path(__file__).resolve().parent
 _CONFIG_PATH = _DIR / "config.json"

@@ -20,7 +20,7 @@ from experiments.deep_learning.common.data import (
     load_examples,
     subset_fingerprint,
 )
-from experiments.deep_learning.common.evaluation import (
+from experiments.deep_learning.common.inference import (
     run_evaluation,
     write_report,
 )
@@ -43,7 +43,7 @@ from experiments.deep_learning.logmel_cnn.ablation import (
     run_ablation,
     write_ablation_report,
 )
-from experiments.deep_learning.logmel_cnn.data import (
+from experiments.deep_learning.logmel_cnn.pipeline import (
     build_features,
     build_model,
 )

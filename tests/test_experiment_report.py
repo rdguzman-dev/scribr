@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from experiments.common.evaluation import (
-    ExampleEvaluation,
-    ExperimentEvaluation,
-)
 from experiments.common.materialize import Manifest, ManifestExample
 from experiments.common.predictions import TextPredictions
 from experiments.common.report import write_report
+from experiments.common.scoring import (
+    ExampleEvaluation,
+    ExperimentEvaluation,
+)
 from experiments.common.spec import (
     DatasetSpec,
     ExperimentSpec,

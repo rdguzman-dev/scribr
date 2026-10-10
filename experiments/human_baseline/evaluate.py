@@ -13,13 +13,13 @@ from scribr.evaluation import (
 )
 from scribr.representation import melody_from_text
 
-from experiments.common.evaluation import evaluate_predictions
 from experiments.common.materialize import Manifest
 from experiments.common.predictions import (
     TextPredictions,
     load_text_predictions,
 )
 from experiments.common.report import write_report
+from experiments.common.scoring import evaluate_predictions
 
 _DIR = Path(__file__).resolve().parent
 _ARTIFACTS_DIR = _DIR / "artifacts"

@@ -10,7 +10,7 @@ infrastructure in `common/`:
   the per-instrument synthesizer factory.
 - `common/training.py` owns the training loop, checkpointing, and MLflow
   logging.
-- `common/evaluation.py` scores checkpoints with `mir_eval` and writes
+- `common/inference.py` scores checkpoints with `mir_eval` and writes
   `report.json` and `report.md`.
 - `common/cli.py` provides the shared `train` and `evaluate` entry
   points.
@@ -21,7 +21,7 @@ infrastructure in `common/`:
    `model.py`, and export it from `src/scribr/deep_learning/__init__.py`.
    The model must map `(batch, n_features, time)` features to
    `(batch, steps, num_classes)` logits.
-2. Create `experiments/deep_learning/<architecture>/` with a `data.py`
+2. Create `experiments/deep_learning/<architecture>/` with a `pipeline.py`
    exposing two builders:
 
    ```python
@@ -42,11 +42,11 @@ infrastructure in `common/`:
    `logmel_cnn/`.
 5. Add a `README.md` describing setup, the smoke run, and the full run.
 
-The training loop, evaluation, reports, and MLflow logging come from
+The training loop, inference, reports, and MLflow logging come from
 `common/`, so a new architecture only supplies its builders and config.
 
 The shared loop assumes the per-step pitch-sequence target: cross
 entropy over the 90-class vocabulary, pitch/hold/note-off accuracy
 groups, and `melody_from_classes` decoding. A different target encoding
 would need its own hooks before it can reuse `common/training.py` and
-`common/evaluation.py`.
+`common/inference.py`.

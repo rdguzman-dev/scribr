@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from experiments.common.evaluation import evaluate_predictions
 from experiments.common.materialize import Manifest, ManifestExample
 from experiments.common.predictions import load_text_predictions
+from experiments.common.scoring import evaluate_predictions
 from experiments.common.spec import (
     DatasetSpec,
     ExperimentSpec,
