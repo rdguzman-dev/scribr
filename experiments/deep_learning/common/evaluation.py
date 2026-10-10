@@ -27,7 +27,7 @@ from experiments.common.evaluation import (
 from experiments.common.markdown import display, format_score, markdown_table
 from experiments.common.report import git_commit, metric_headers, metric_table
 from scribr.deep_learning import (
-    LogMelSpectrogram,
+    FeatureExtractor,
     SynthesizedMelodyDataset,
     melody_from_classes,
 )
@@ -39,7 +39,7 @@ from .spec import TrainingConfig
 
 def run_evaluation(
     model: nn.Module,
-    features: LogMelSpectrogram,
+    features: FeatureExtractor,
     device: torch.device,
     examples: Sequence[MelodyExample],
     config: TrainingConfig,
@@ -47,6 +47,7 @@ def run_evaluation(
     *,
     batch_size: int,
     num_workers: int,
+    decode: Callable[[Sequence[int]], Melody] = melody_from_classes,
 ) -> ExperimentEvaluation:
     """Transcribe `examples` with every evaluation instrument and score.
 
@@ -65,6 +66,8 @@ def run_evaluation(
             `Instrument`.
         batch_size: Inference batch size.
         num_workers: `DataLoader` workers for synthesis.
+        decode: Maps per-step class indices to a `Melody`. Defaults to
+            the dataset pitch-sequence codec.
 
     Returns:
         Per-example scores with overall and per-instrument means.
@@ -86,7 +89,7 @@ def run_evaluation(
                 shuffle=False,
                 num_workers=num_workers,
             )
-            estimates = _estimates(loader, model, device)
+            estimates = _estimates(loader, model, device, decode)
 
             for position, (example, estimate) in enumerate(
                 zip(examples, estimates)
@@ -168,6 +171,7 @@ def _estimates(
     loader: DataLoader,
     model: nn.Module,
     device: torch.device,
+    decode: Callable[[Sequence[int]], Melody],
 ) -> list[Melody]:
     melodies: list[Melody] = []
 
@@ -175,7 +179,7 @@ def _estimates(
         logits = model(batch_features.to(device))
 
         for row in logits.argmax(dim=-1).cpu():
-            melodies.append(melody_from_classes(row.tolist()))
+            melodies.append(decode(row.tolist()))
 
     return melodies
 
