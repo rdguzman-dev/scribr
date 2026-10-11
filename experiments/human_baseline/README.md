@@ -50,7 +50,7 @@ For example:
 ```text
 C4, 0.0, 0.5
 E4, 0.5, 1.0
-G4, 1.0, 2.0
+G#4, 1.0, 2.0
 ```
 
 Each row represents one note, with its pitch, onset, and offset. Pitches use
@@ -96,7 +96,7 @@ Columns:
 * `id`: example ID exactly as it appears in `transcriptions/` and the
   manifest (for example `000-piano`).
 * `datetime`: date and time the transcription was started, in
-  `YYYY-MM-DD HH:MM:SS` format.
+  `YYYY-MM-DD HH:MM` format.
 * `duration_seconds`: how long the transcription took, recorded in seconds.
   Second-level precision is sufficient; small differences from the actual
   elapsed time are not meaningful.
@@ -104,7 +104,7 @@ Columns:
 An example row:
 
 ```text
-001-acoustic_guitar,2026-09-28 18:00:00,2520
+001-acoustic_guitar,2026-09-28 18:00,2520
 ```
 
 ## Score
