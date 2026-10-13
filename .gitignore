@@ -18,3 +18,4 @@ experiments/human_baseline/artifacts/wav/
 mlruns/
 mlflow.db*
 experiments/deep_learning/*/artifacts/
+experiments/algorithmic/artifacts/
