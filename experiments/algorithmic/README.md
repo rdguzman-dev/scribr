@@ -21,7 +21,10 @@ inference and does not use MIDI as an interface.
    waveform end. Clamp to the input duration and prevent overlapping notes.
    Discard regions shorter than 50 ms by default.
 6. Convert seconds to quarter-note beats with `seconds * tempo / 60`.
-   Keep detected times unquantized; do not snap to the reference grid.
+7. Snap onsets and offsets to the nearest 0.25 quarter-note beat by default.
+   Half-grid ties round forward. Drop notes whose boundaries collapse to one
+   grid point, and cap endings at the last grid point within the waveform.
+   Monotone rounding preserves the ordering and non-overlap of notes.
 
 Offsets are acoustic estimates, not recovered MIDI note-off events. A
 SoundFont release can remain voiced after a reference note ends. The RMS gate
@@ -42,20 +45,26 @@ Tests include real sine-wave transcription, input validation, rests, repeated
 notes, pitch changes, short tracker dropouts, tempo conversion, resampling,
 and verified manifest/report handling. They do not require a SoundFont.
 
-## Tune on validation audio
+## Evaluate the test baseline
 
-The default `config.json` selects the first 20 validation melodies with
-piano, acoustic guitar, electric guitar, and violin assigned round robin.
-It uses the same rendering settings as the current human-baseline config.
+The default `config.json` selects the first 20 test melodies with piano,
+acoustic guitar, electric guitar, and violin assigned round robin, matching
+human-baseline selection and synthesis settings. Use the same SoundFont.
 
 ```bash
 export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
 uv run python -m experiments.algorithmic.evaluate
 ```
 
-Download the validation split first if needed using the main README's setup
+Download the test split first if needed using the main README's setup
 instructions. `--soundfont PATH` overrides the environment variable.
 `--config PATH` selects another shared `ExperimentSpec` JSON configuration.
+
+## Tune on training audio
+
+`tuning_config.json` selects the first 1,000 training melodies. This bounded
+starting subset is larger than the test baseline; increase `sample_size` for
+more extensive tuning as time permits. Do not choose parameters on test data.
 
 Tune `AlgorithmicConfig` parameters using a JSON mapping, for example:
 
@@ -69,13 +78,15 @@ Tune `AlgorithmicConfig` parameters using a JSON mapping, for example:
 
 ```bash
 uv run python -m experiments.algorithmic.evaluate \
+  --config experiments/algorithmic/tuning_config.json \
   --parameters parameters.json \
-  --output experiments/algorithmic/artifacts/validation.json
+  --output experiments/algorithmic/artifacts/train.json
 ```
 
-Keep tuning on validation data. Record each run's parameters and inspect
-false/missing notes, especially by instrument. Freeze the parameters before
-running the test comparison.
+Download the train split before tuning. Record each run's parameters and
+inspect false/missing notes by instrument. Freeze parameters before running
+the test comparison. Tuning is a comparison of measured runs, not an
+automatic parameter search.
 
 ## Compare against the human baseline
 
@@ -102,22 +113,25 @@ Compare `F-measure_no_offset` first (pitch and onset together), and report
 `F-measure` second (pitch, onset, and offset). Onset-only F1 is insufficient.
 Silent examples remain included and score zero, matching the shared evaluator.
 
-## Review and contribution
+## Quantization ablation
 
-Explain the pYIN output, Hz-to-MIDI conversion, onset filtering, segmentation,
-offset limitations, seconds-to-beats conversion, and metric selection before
-submitting. Review every generated change and follow the course's AI citation
-requirements once confirmed by the professor.
+Keep the same recordings and frozen parameters in both runs. The default
+is quantized; `--unquantized` disables only the final snapping stage.
 
-Branch: `feat/add-algorithmic-transcriber`.
-Suggested Conventional Commit subject:
-
-```text
-feat(algorithmic): add pYIN transcription and evaluation
+```bash
+uv run python -m experiments.algorithmic.evaluate \
+  --manifest experiments/human_baseline/artifacts/manifest.json \
+  --output experiments/algorithmic/artifacts/quantized.json
+uv run python -m experiments.algorithmic.evaluate \
+  --manifest experiments/human_baseline/artifacts/manifest.json \
+  --unquantized \
+  --output experiments/algorithmic/artifacts/unquantized.json
 ```
 
-Open a pull request for Ricardo to review; the code is not considered reviewed
-or merged merely because its tests pass.
+Pass the same `--parameters PATH` to both commands if parameters were tuned.
+Compare the two reports' `F-measure_no_offset` and `F-measure`. The effective
+`quantize` value is recorded in each report. Use unquantized output only for
+this ablation; the primary baseline uses the known dataset grid.
 
 ## Method references
 

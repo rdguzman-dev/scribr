@@ -30,7 +30,7 @@ The LLM approach is not implemented yet.
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - FluidSynth and a General MIDI SoundFont (only for audio synthesis)
 
-`uv sync` installs librosa, PyTorch, `torchaudio`, `numpy`, `mido`, `tfrecord`,
+`uv sync` installs `librosa`, PyTorch, `torchaudio`, `numpy`, `mido`, `tfrecord`,
 `pyfluidsynth`, `mir_eval`, `pytest`, and MLflow. TensorFlow is not
 required.
 
@@ -333,7 +333,8 @@ step and decodes it to a `Melody`. Training and evaluation live in
 The algorithmic approach is implemented by `AlgorithmicTranscriber`; see
 [`experiments/algorithmic`](experiments/algorithmic/README.md) for evaluation
 and a direct comparison with the human baseline. The LLM approach is not
-implemented yet. Each new approach should implement `Transcriber` and return the canonical
+implemented yet. Each new approach should implement `Transcriber` and return
+the canonical
 `Melody`:
 
 ```python

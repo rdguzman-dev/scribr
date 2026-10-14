@@ -4,16 +4,17 @@ import hashlib
 import json
 import sys
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 import pytest
-from scribr.representation import Melody, Note, melody_to_text
-from scribr.synthesis import Instrument
-from scribr.wav import write_wav
 
 from experiments.algorithmic import evaluate as experiment
 from experiments.common.materialize import Manifest, ManifestExample
 from experiments.common.spec import DatasetSpec, ExperimentSpec, SynthesisSpec
+from scribr.representation import Melody, Note, melody_to_text
+from scribr.synthesis import Instrument
+from scribr.wav import write_wav
 
 
 def _manifest(tmp_path):
@@ -75,7 +76,12 @@ def test_manifest_rejects_sample_rate_mismatch(tmp_path):
         list(experiment._manifest_audio(path))
 
 
-def test_cli_saves_predictions_metrics_and_provenance(tmp_path, monkeypatch):
+@pytest.mark.parametrize("unquantized", [False, True])
+def test_cli_saves_predictions_metrics_and_provenance(
+    tmp_path,
+    monkeypatch,
+    unquantized,
+):
     path, reference = _manifest(tmp_path)
     received = []
 
@@ -83,7 +89,12 @@ def test_cli_saves_predictions_metrics_and_provenance(tmp_path, monkeypatch):
         def __init__(self, config):
             pass
 
-        def transcribe(self, audio, sample_rate, tempo):
+        def transcribe(
+            self,
+            audio,
+            sample_rate,
+            tempo,
+        ):
             received.append((audio.shape, sample_rate, tempo))
             return reference
 
@@ -92,7 +103,8 @@ def test_cli_saves_predictions_metrics_and_provenance(tmp_path, monkeypatch):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["evaluate", "--manifest", str(path), "--output", str(output)],
+        ["evaluate", "--manifest", str(path), "--output", str(output)]
+        + (["--unquantized"] if unquantized else []),
     )
     experiment.main()
     report = json.loads(output.read_text())
@@ -106,3 +118,21 @@ def test_cli_saves_predictions_metrics_and_provenance(tmp_path, monkeypatch):
     assert report["source"]["manifest"] == Manifest.load(path).to_dict()
     assert report["parameters"]["min_pitch"] == 21
     assert "librosa" in report["versions"]
+    assert report["parameters"]["quantize"] is not unquantized
+
+
+def test_test_baseline_and_training_tuning_configs_use_separate_splits():
+    directory = Path(experiment.__file__).parent
+    baseline = ExperimentSpec.load(directory / "config.json")
+    tuning = ExperimentSpec.load(directory / "tuning_config.json")
+    human = ExperimentSpec.load(
+        directory.parent / "human_baseline" / "config.json"
+    )
+
+    assert baseline.dataset == human.dataset == DatasetSpec("test", 20)
+    assert baseline.instruments == human.instruments
+    assert baseline.synthesis == human.synthesis
+    assert tuning.dataset.split == "train"
+    assert tuning.dataset.sample_size == 1000
+    assert tuning.instruments == baseline.instruments
+    assert tuning.synthesis == baseline.synthesis

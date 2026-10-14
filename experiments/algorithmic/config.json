@@ -1,7 +1,7 @@
 {
   "experiment": "algorithmic_pyin",
   "dataset": {
-    "split": "validation",
+    "split": "test",
     "sample_size": 20
   },
   "instruments": [
