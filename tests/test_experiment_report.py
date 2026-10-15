@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from experiments.common.materialize import Manifest, ManifestExample
 from experiments.common.predictions import TextPredictions
 from experiments.common.report import write_report
@@ -160,6 +162,55 @@ def test_report_json_structure(tmp_path: Path) -> None:
         {"id": "003-piano", "error": "line 1: boom"}
     ]
     assert markdown_path.is_file()
+
+
+def test_report_includes_extra_provenance(tmp_path: Path) -> None:
+    json_path, _ = write_report(
+        make_manifest(),
+        make_evaluation(),
+        TextPredictions(melodies={}, missing=(), errors={}),
+        tmp_path,
+        extra={"run_id": "abc123", "seed": 7},
+    )
+
+    data = json.loads(json_path.read_text())
+
+    assert data["run_id"] == "abc123"
+    assert data["seed"] == 7
+
+
+def test_report_rejects_extra_reserved_keys(tmp_path: Path) -> None:
+    with pytest.raises(ValueError) as excinfo:
+        write_report(
+            make_manifest(),
+            make_evaluation(),
+            TextPredictions(melodies={}, missing=(), errors={}),
+            tmp_path,
+            extra={"metadata": {}, "experiment": "override"},
+        )
+
+    message = str(excinfo.value)
+
+    assert "metadata" in message
+    assert "experiment" in message
+
+
+def test_report_merges_package_versions(tmp_path: Path) -> None:
+    json_path, _ = write_report(
+        make_manifest(),
+        make_evaluation(),
+        TextPredictions(melodies={}, missing=(), errors={}),
+        tmp_path,
+        package_versions={"torch": "2.14.0", "scribr": "local"},
+    )
+
+    data = json.loads(json_path.read_text())
+    versions = data["metadata"]["package_versions"]
+
+    assert versions["torch"] == "2.14.0"
+    assert versions["scribr"] == "local"
+    assert "mir_eval" in versions
+    assert "versions" not in data
 
 
 def test_markdown_tables_and_sections(tmp_path: Path) -> None:

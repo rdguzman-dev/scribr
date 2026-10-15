@@ -8,6 +8,7 @@ import platform
 import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
+from typing import Any
 
 from .markdown import display, format_score, markdown_table
 from .materialize import Manifest
@@ -38,6 +39,20 @@ _RELEASE_TAIL_NOTE = (
     "release tails should not be transcribed as notes."
 )
 
+# Top-level report keys that callers cannot override through `extra`.
+_REPORT_KEYS = frozenset(
+    {
+        "experiment",
+        "soundfont_sha256",
+        "metadata",
+        "overall",
+        "per_instrument",
+        "examples",
+        "missing",
+        "parse_errors",
+    }
+)
+
 
 def write_report(
     manifest: Manifest,
@@ -46,6 +61,8 @@ def write_report(
     artifacts_dir: str | Path,
     *,
     soundfont_path: str | Path | None = None,
+    extra: Mapping[str, Any] | None = None,
+    package_versions: Mapping[str, str] | None = None,
 ) -> tuple[Path, Path]:
     """Write `report.json` and `report.md` into `artifacts_dir`.
 
@@ -53,7 +70,14 @@ def write_report(
         The JSON and Markdown report paths.
     """
     artifacts = Path(artifacts_dir)
-    data = _report_dict(manifest, evaluation, predictions, soundfont_path)
+    data = _report_dict(
+        manifest,
+        evaluation,
+        predictions,
+        soundfont_path,
+        extra=extra,
+        package_versions=package_versions,
+    )
 
     json_path = artifacts / "report.json"
     json_path.write_text(
@@ -71,22 +95,28 @@ def _report_dict(
     evaluation: ExperimentEvaluation,
     predictions: TextPredictions,
     soundfont_path: str | Path | None,
+    *,
+    extra: Mapping[str, Any] | None = None,
+    package_versions: Mapping[str, str] | None = None,
 ) -> dict:
     counts = group_counts(evaluation)
     resolved_soundfont = resolve_soundfont_path(
         soundfont_path, required=False
     )
-    package_versions = {
+    versions = {
         name: _package_version(name) for name in ("scribr", "mir_eval")
     }
 
-    return {
+    if package_versions:
+        versions.update(package_versions)
+
+    data = {
         "experiment": manifest.experiment,
         "soundfont_sha256": manifest.soundfont_sha256,
         "metadata": {
             "git_commit": git_commit(),
             "python_version": platform.python_version(),
-            "package_versions": package_versions,
+            "package_versions": versions,
             "soundfont_path": (
                 None if resolved_soundfont is None else str(resolved_soundfont)
             ),
@@ -118,6 +148,19 @@ def _report_dict(
             for example_id, message in predictions.errors.items()
         ],
     }
+
+    if extra:
+        conflicts = sorted(_REPORT_KEYS.intersection(extra))
+
+        if conflicts:
+            raise ValueError(
+                "extra keys collide with report keys: "
+                + ", ".join(conflicts)
+            )
+
+        data.update(extra)
+
+    return data
 
 
 def _markdown(data: Mapping) -> str:
