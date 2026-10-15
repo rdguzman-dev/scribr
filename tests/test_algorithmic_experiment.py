@@ -48,7 +48,8 @@ def _manifest(tmp_path):
 
 def test_manifest_audio_is_verified_and_decoded(tmp_path):
     path, reference = _manifest(tmp_path)
-    items = list(experiment._manifest_audio(path))
+    manifest = Manifest.load(path)
+    items = list(experiment._manifest_audio(manifest, path.parent))
     assert len(items) == 1
     example_id, loaded, audio, sample_rate, instrument = items[0]
     assert (example_id, loaded, sample_rate, instrument) == (
@@ -61,7 +62,7 @@ def test_manifest_audio_is_verified_and_decoded(tmp_path):
     assert audio.shape == (22050,)
     (tmp_path / "reference.txt").write_text("C4, 0, 1\n")
     with pytest.raises(ValueError, match="hash mismatch"):
-        list(experiment._manifest_audio(path))
+        list(experiment._manifest_audio(manifest, path.parent))
 
 
 def test_manifest_rejects_sample_rate_mismatch(tmp_path):
@@ -71,54 +72,93 @@ def test_manifest_rejects_sample_rate_mismatch(tmp_path):
         manifest.config,
         synthesis=replace(manifest.config.synthesis, sample_rate=44100),
     )
-    replace(manifest, config=spec).save(path)
+    mismatched = replace(manifest, config=spec)
+    mismatched.save(path)
     with pytest.raises(ValueError, match="sample rate"):
-        list(experiment._manifest_audio(path))
+        list(experiment._manifest_audio(mismatched, path.parent))
 
 
-@pytest.mark.parametrize("unquantized", [False, True])
-def test_cli_saves_predictions_metrics_and_provenance(
-    tmp_path,
-    monkeypatch,
-    unquantized,
-):
-    path, reference = _manifest(tmp_path)
-    received = []
-
+def _stub_transcriber(reference, received=None):
     class Transcriber:
         def __init__(self, config):
             pass
 
-        def transcribe(
-            self,
-            audio,
-            sample_rate,
-            tempo,
-        ):
-            received.append((audio.shape, sample_rate, tempo))
+        def transcribe(self, audio, sample_rate, tempo):
+            if received is not None:
+                received.append((audio.shape, sample_rate, tempo))
+
             return reference
 
-    monkeypatch.setattr(experiment, "AlgorithmicTranscriber", Transcriber)
-    output = tmp_path / "report.json"
+    return Transcriber
+
+
+def test_cli_writes_report_metrics_and_provenance(tmp_path, monkeypatch):
+    path, reference = _manifest(tmp_path)
+    received = []
+    monkeypatch.setattr(
+        experiment,
+        "AlgorithmicTranscriber",
+        _stub_transcriber(reference, received),
+    )
     monkeypatch.setattr(
         sys,
         "argv",
-        ["evaluate", "--manifest", str(path), "--output", str(output)]
-        + (["--unquantized"] if unquantized else []),
+        [
+            "evaluate",
+            "--manifest",
+            str(path),
+            "--artifacts-dir",
+            str(tmp_path),
+        ],
     )
     experiment.main()
-    report = json.loads(output.read_text())
+    report = json.loads((tmp_path / "report.json").read_text())
     assert received == [((22050,), 22050, 120)]
-    assert report["num_examples"] == 1
-    assert report["metrics"]["F-measure_no_offset"] == 1
-    assert report["grouped_metrics"]["piano"]["F-measure"] == 1
-    assert report["predictions"]["000-piano"] == [
-        {"pitch": 69, "onset": 0, "offset": 1}
-    ]
+    assert report["metadata"]["num_examples"] == 1
+    assert report["overall"]["F-measure_no_offset"] == 1
+    assert report["per_instrument"]["piano"]["metrics"]["F-measure"] == 1
     assert report["source"]["manifest"] == Manifest.load(path).to_dict()
     assert report["parameters"]["min_pitch"] == 21
-    assert "librosa" in report["versions"]
-    assert report["parameters"]["quantize"] is not unquantized
+    assert "librosa" in report["metadata"]["package_versions"]
+    assert (tmp_path / "report.md").is_file()
+
+
+def test_cli_materializes_config_and_scores(tmp_path, monkeypatch):
+    path, reference = _manifest(tmp_path)
+    manifest = Manifest.load(path)
+    calls = []
+
+    def fake_materialize(spec, artifacts_dir, *, soundfont_path=None):
+        calls.append((spec, artifacts_dir, soundfont_path))
+        return manifest
+
+    config_path = tmp_path / "config.json"
+    manifest.config.save(config_path)
+    soundfont = tmp_path / "font.sf2"
+    monkeypatch.setattr(
+        experiment,
+        "AlgorithmicTranscriber",
+        _stub_transcriber(reference),
+    )
+    monkeypatch.setattr(experiment, "materialize", fake_materialize)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate",
+            "--config",
+            str(config_path),
+            "--soundfont",
+            str(soundfont),
+            "--artifacts-dir",
+            str(tmp_path),
+        ],
+    )
+    experiment.main()
+    report = json.loads((tmp_path / "report.json").read_text())
+    assert calls == [(manifest.config, tmp_path, soundfont)]
+    assert report["source"]["manifest"] == manifest.to_dict()
+    assert report["metadata"]["num_examples"] == 1
 
 
 def test_test_baseline_and_training_tuning_configs_use_separate_splits():

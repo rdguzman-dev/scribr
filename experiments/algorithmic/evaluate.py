@@ -4,24 +4,22 @@ import argparse
 import hashlib
 import json
 import wave
-from dataclasses import asdict, replace
-from importlib.metadata import version
+from dataclasses import asdict
 from pathlib import Path
 
+import librosa
 import numpy as np
 
-from experiments.common.materialize import Manifest
+from experiments.common.materialize import Manifest, materialize
+from experiments.common.predictions import TextPredictions
+from experiments.common.report import write_report
 from experiments.common.scoring import evaluate_predictions
 from experiments.common.spec import ExperimentSpec
-from experiments.common.synthesis import (
-    SynthesizerFactory,
-    resolve_soundfont_path,
-)
 from scribr.algorithmic import AlgorithmicConfig, AlgorithmicTranscriber
-from scribr.data import MelodyDataset
 from scribr.representation import Melody, melody_from_text
 
 _DIR = Path(__file__).resolve().parent
+_ARTIFACTS_DIR = _DIR / "artifacts"
 
 
 def _read_verified(path: Path, expected_hash: str) -> bytes:
@@ -33,14 +31,12 @@ def _read_verified(path: Path, expected_hash: str) -> bytes:
     return data
 
 
-def _manifest_audio(manifest_path: Path):
-    manifest = Manifest.load(manifest_path)
-
+def _manifest_audio(manifest: Manifest, artifacts_dir: Path):
     if not manifest.examples:
         raise ValueError("manifest must contain at least one example")
 
     for example in manifest.examples:
-        wav_path = manifest_path.parent / example.wav
+        wav_path = artifacts_dir / example.wav
         _read_verified(wav_path, example.wav_sha256)
 
         with wave.open(str(wav_path), "rb") as source:
@@ -64,7 +60,7 @@ def _manifest_audio(manifest_path: Path):
 
         reference = melody_from_text(
             _read_verified(
-                manifest_path.parent / example.reference,
+                artifacts_dir / example.reference,
                 example.reference_sha256,
             ).decode("utf-8")
         )
@@ -75,35 +71,6 @@ def _manifest_audio(manifest_path: Path):
             audio,
             sample_rate,
             example.instrument.value,
-        )
-
-
-def _dataset_audio(spec: ExperimentSpec, soundfont: Path):
-    factory = SynthesizerFactory(soundfont, spec.synthesis)
-    synthesizers = {
-        instrument: factory(instrument) for instrument in spec.instruments
-    }
-    dataset = MelodyDataset(
-        split=spec.dataset.split, max_examples=spec.dataset.sample_size
-    )
-
-    count = 0
-    for index, example in enumerate(dataset):
-        instrument = spec.instruments[index % len(spec.instruments)]
-        synthesizer = synthesizers[instrument]
-
-        yield (
-            f"{index:03d}-{instrument.value}",
-            example.melody,
-            synthesizer.synthesize(example.melody),
-            synthesizer.sample_rate,
-            instrument.value,
-        )
-        count += 1
-
-    if count != spec.dataset.sample_size:
-        raise ValueError(
-            f"expected {spec.dataset.sample_size} examples, found {count}"
         )
 
 
@@ -123,49 +90,41 @@ def main() -> None:
         help="JSON mapping of AlgorithmicConfig parameters",
     )
     parser.add_argument(
-        "--output", type=Path, default=_DIR / "artifacts" / "report.json"
-    )
-    parser.add_argument(
-        "--unquantized",
-        action="store_true",
-        help="disable grid snapping for the unquantized ablation",
+        "--artifacts-dir",
+        type=Path,
+        default=_ARTIFACTS_DIR,
+        help="directory for materialized artifacts and reports",
     )
     args = parser.parse_args()
 
     config = AlgorithmicConfig(
         **json.loads(args.parameters.read_text()) if args.parameters else {}
     )
-    if args.unquantized:
-        config = replace(config, quantize=False)
-
     transcriber = AlgorithmicTranscriber(config)
+    artifacts_dir = args.artifacts_dir
 
     if args.manifest:
         manifest = Manifest.load(args.manifest)
         spec = manifest.config
-        recordings = _manifest_audio(args.manifest)
-        provenance = {"manifest": manifest.to_dict()}
+        source_dir = args.manifest.parent
 
     else:
         spec = ExperimentSpec.load(args.config or _DIR / "config.json")
-        soundfont = resolve_soundfont_path(args.soundfont)
-        recordings = _dataset_audio(spec, soundfont)
-        provenance = {
-            "soundfont_sha256": hashlib.sha256(
-                soundfont.read_bytes()
-            ).hexdigest()
-        }
+        manifest = materialize(
+            spec, artifacts_dir, soundfont_path=args.soundfont
+        )
+        source_dir = artifacts_dir
 
-    predictions: dict[str, list[dict]] = {}
+    estimates: dict[str, Melody] = {}
 
     def items():
-        for example_id, reference, audio, sample_rate, group in recordings:
-            # References enter scoring only; inference receives audio and
-            # the synthesis timing metadata, just like every other approach.
-            estimate: Melody = transcriber.transcribe(
+        for example_id, reference, audio, sample_rate, group in _manifest_audio(
+            manifest, source_dir
+        ):
+            estimate = transcriber.transcribe(
                 audio, sample_rate, spec.synthesis.tempo
             )
-            predictions[example_id] = [asdict(note) for note in estimate.notes]
+            estimates[example_id] = estimate
             print(
                 f"Transcribed {example_id}: {len(estimate)} note(s)",
                 flush=True,
@@ -173,33 +132,31 @@ def main() -> None:
             yield example_id, reference, estimate, group
 
     evaluation = evaluate_predictions(items(), tempo=spec.synthesis.tempo)
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    provenance = {"manifest": manifest.to_dict()}
 
-    report = {
-        "approach": "algorithmic_pyin",
-        "config": spec.to_dict(),
-        "parameters": asdict(config),
-        "versions": {
-            name: version(name) for name in ("librosa", "numpy", "mir-eval")
+    json_path, markdown_path = write_report(
+        manifest,
+        evaluation,
+        TextPredictions(melodies=estimates, missing=(), errors={}),
+        artifacts_dir,
+        soundfont_path=args.soundfont,
+        extra={
+            "parameters": asdict(config),
+            "source": provenance,
         },
-        "source": provenance,
-        "num_examples": len(evaluation.per_example),
-        "metrics": dict(evaluation.metrics),
-        "grouped_metrics": dict(evaluation.grouped_metrics),
-        "metric_options": dict(evaluation.metric_options),
-        "per_example": [asdict(example) for example in evaluation.per_example],
-        "predictions": predictions,
-    }
-
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(report, indent=2) + "\n", encoding="utf-8"
+        package_versions={
+            "librosa": librosa.__version__,
+            "numpy": np.__version__,
+        },
     )
 
     print(
         f"F-measure_no_offset: {evaluation.metrics['F-measure_no_offset']:.4f}"
     )
     print(f"F-measure: {evaluation.metrics['F-measure']:.4f}")
-    print(f"Wrote {args.output}")
+    print(f"Wrote {json_path}")
+    print(f"Wrote {markdown_path}")
 
 
 if __name__ == "__main__":
