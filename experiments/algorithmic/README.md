@@ -47,9 +47,9 @@ and verified manifest/report handling. They do not require a SoundFont.
 
 ## Evaluate the test baseline
 
-The default `config.json` selects the first 20 test melodies with piano,
-acoustic guitar, electric guitar, and violin assigned round robin, matching
-human-baseline selection and synthesis settings. Use the same SoundFont.
+The default `config.json` selects the entire test split (`sample_size` is
+`null`) with piano, acoustic guitar, electric guitar, and violin assigned
+round robin. Use the same SoundFont.
 
 ```bash
 export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
@@ -57,8 +57,10 @@ uv run python -m experiments.algorithmic.evaluate
 ```
 
 Download the test split first if needed using the main README's setup
-instructions. `--soundfont PATH` overrides the environment variable.
-`--config PATH` selects another shared `ExperimentSpec` JSON configuration.
+instructions. The full split renders tens of thousands of WAV files, so the
+first run is slow and writes a large `artifacts/` directory. `--soundfont
+PATH` overrides the environment variable. `--config PATH` selects another
+shared `ExperimentSpec` JSON configuration.
 
 The command materializes the selected examples into
 `experiments/algorithmic/artifacts/` (`manifest.json`, `wav/`, and
@@ -72,9 +74,9 @@ artifacts are gitignored.
 
 ## Tune on training audio
 
-`tuning_config.json` selects the first 1,000 training melodies. This bounded
-starting subset is larger than the test baseline; increase `sample_size` for
-more extensive tuning as time permits. Do not choose parameters on test data.
+`tuning_config.json` selects the first 1,000 training melodies. Increase
+`sample_size` for more extensive tuning as time permits. Do not choose
+parameters on test data.
 
 Tune `AlgorithmicConfig` parameters using a JSON mapping, for example:
 
@@ -100,7 +102,9 @@ automatic parameter search.
 
 ## Compare against the human baseline
 
-Use the exact WAV files and references recorded in Ricardo's manifest:
+The human baseline covers only the first 20 test melodies, not the full split.
+Score the algorithmic transcriber on the same examples with the exact WAV files
+and references recorded in Ricardo's manifest:
 
 ```bash
 uv run python -m experiments.algorithmic.evaluate \
