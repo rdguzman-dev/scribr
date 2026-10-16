@@ -161,7 +161,7 @@ def main() -> None:
         )
         source_dir = artifacts_dir
 
-    recordings = list(load_recordings(manifest, source_dir))
+    recordings = load_recordings(manifest, source_dir)
     evaluation, estimates = score_recordings(
         recordings, transcriber, spec.synthesis.tempo, verbose=True
     )
