@@ -1,0 +1,20 @@
+{
+  "experiment": "algorithmic_pyin_validation",
+  "dataset": {
+    "split": "validation",
+    "sample_size": 2000
+  },
+  "instruments": [
+    "piano",
+    "acoustic_guitar",
+    "electric_guitar",
+    "violin"
+  ],
+  "synthesis": {
+    "sample_rate": 22050,
+    "tempo": 120.0,
+    "velocity": 80,
+    "gain": 1.0,
+    "release_tail_seconds": 0.5
+  }
+}

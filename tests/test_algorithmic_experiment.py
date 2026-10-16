@@ -162,10 +162,11 @@ def test_cli_materializes_config_and_scores(tmp_path, monkeypatch):
     assert report["metadata"]["num_examples"] == 1
 
 
-def test_test_baseline_and_training_tuning_configs_use_separate_splits():
+def test_baseline_tuning_and_validation_configs_use_separate_splits():
     directory = Path(experiment.__file__).parent
     baseline = ExperimentSpec.load(directory / "config.json")
     tuning = ExperimentSpec.load(directory / "tuning_config.json")
+    validation = ExperimentSpec.load(directory / "validation_config.json")
     human = ExperimentSpec.load(
         directory.parent / "human_baseline" / "config.json"
     )
@@ -174,10 +175,14 @@ def test_test_baseline_and_training_tuning_configs_use_separate_splits():
     assert human.dataset == DatasetSpec("test", 20)
     assert baseline.instruments == human.instruments
     assert baseline.synthesis == human.synthesis
-    assert tuning.dataset.split == "train"
-    assert tuning.dataset.sample_size == 1000
+
+    assert tuning.dataset == DatasetSpec("train", 2000)
     assert tuning.instruments == baseline.instruments
     assert tuning.synthesis == baseline.synthesis
+
+    assert validation.dataset == DatasetSpec("validation", 2000)
+    assert validation.instruments == tuning.instruments
+    assert validation.synthesis == tuning.synthesis
 
 
 class _QuantizeAwareTranscriber:
