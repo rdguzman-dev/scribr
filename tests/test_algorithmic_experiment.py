@@ -124,6 +124,40 @@ def test_cli_writes_report_metrics_and_provenance(tmp_path, monkeypatch):
     assert (tmp_path / "report.md").is_file()
 
 
+def test_cli_scores_recordings_lazily(tmp_path, monkeypatch):
+    path, reference = _manifest(tmp_path)
+    received = []
+    real_score = experiment.score_recordings
+
+    def spy_score(recordings, transcriber, tempo, *, verbose=False):
+        received.append(recordings)
+        return real_score(recordings, transcriber, tempo, verbose=verbose)
+
+    monkeypatch.setattr(experiment, "score_recordings", spy_score)
+    monkeypatch.setattr(
+        experiment,
+        "AlgorithmicTranscriber",
+        _stub_transcriber(reference),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate",
+            "--manifest",
+            str(path),
+            "--artifacts-dir",
+            str(tmp_path),
+        ],
+    )
+    experiment.main()
+
+    # The full split must stream: do not decode every WAV up front.
+    assert len(received) == 1
+    assert not isinstance(received[0], list)
+    assert iter(received[0]) is received[0]
+
+
 def test_cli_materializes_config_and_scores(tmp_path, monkeypatch):
     path, reference = _manifest(tmp_path)
     manifest = Manifest.load(path)
