@@ -60,6 +60,16 @@ Download the test split first if needed using the main README's setup
 instructions. `--soundfont PATH` overrides the environment variable.
 `--config PATH` selects another shared `ExperimentSpec` JSON configuration.
 
+The command materializes the selected examples into
+`experiments/algorithmic/artifacts/` (`manifest.json`, `wav/`, and
+`reference/`). Later runs reuse the manifest and read the same mono 16-bit
+PCM WAVs that scoring hash-checks. Because `AlgorithmicConfig` is separate
+from `ExperimentSpec`, changing `--parameters` reuses the manifest instead
+of rendering again; changing `--config` raises until you delete the stale
+`experiments/algorithmic/artifacts/` directory. `--artifacts-dir PATH`
+writes the materialized artifacts and reports somewhere else. The
+artifacts are gitignored.
+
 ## Tune on training audio
 
 `tuning_config.json` selects the first 1,000 training melodies. This bounded
@@ -80,7 +90,7 @@ Tune `AlgorithmicConfig` parameters using a JSON mapping, for example:
 uv run python -m experiments.algorithmic.evaluate \
   --config experiments/algorithmic/tuning_config.json \
   --parameters parameters.json \
-  --output experiments/algorithmic/artifacts/train.json
+  --artifacts-dir experiments/algorithmic/artifacts/tuning
 ```
 
 Download the train split before tuning. Record each run's parameters and
@@ -94,8 +104,7 @@ Use the exact WAV files and references recorded in Ricardo's manifest:
 
 ```bash
 uv run python -m experiments.algorithmic.evaluate \
-  --manifest experiments/human_baseline/artifacts/manifest.json \
-  --output experiments/algorithmic/artifacts/test.json
+  --manifest experiments/human_baseline/artifacts/manifest.json
 ```
 
 If the files have not been materialized, run the existing human-baseline
@@ -104,34 +113,17 @@ mono 16-bit PCM WAVs and checks their hashes and reference hashes against the
 manifest. The materialized data needs no dataset or SoundFont at evaluation
 time. Passing `--parameters PATH` uses your frozen validation settings.
 
-The JSON report contains all `mir_eval` metrics, per-example and per-instrument
-scores, detected notes, metric tolerances, parameters, package versions, and
-source provenance. It is written only after the complete run succeeds.
-Generated reports are gitignored; choose explicitly which results to share.
+The run writes `report.json` and a matching `report.md` into the artifacts
+directory (`experiments/algorithmic/artifacts/` by default, or `--artifacts-dir
+PATH`). The report contains the shared metadata block, overall and
+per-instrument `mir_eval` metrics, per-example scores, metric tolerances, the
+`AlgorithmicConfig` parameters, package versions, and the source manifest
+provenance. It is written only after the complete run succeeds. Generated
+reports are gitignored; choose explicitly which results to share.
 
 Compare `F-measure_no_offset` first (pitch and onset together), and report
 `F-measure` second (pitch, onset, and offset). Onset-only F1 is insufficient.
 Silent examples remain included and score zero, matching the shared evaluator.
-
-## Quantization ablation
-
-Keep the same recordings and frozen parameters in both runs. The default
-is quantized; `--unquantized` disables only the final snapping stage.
-
-```bash
-uv run python -m experiments.algorithmic.evaluate \
-  --manifest experiments/human_baseline/artifacts/manifest.json \
-  --output experiments/algorithmic/artifacts/quantized.json
-uv run python -m experiments.algorithmic.evaluate \
-  --manifest experiments/human_baseline/artifacts/manifest.json \
-  --unquantized \
-  --output experiments/algorithmic/artifacts/unquantized.json
-```
-
-Pass the same `--parameters PATH` to both commands if parameters were tuned.
-Compare the two reports' `F-measure_no_offset` and `F-measure`. The effective
-`quantize` value is recorded in each report. Use unquantized output only for
-this ablation; the primary baseline uses the known dataset grid.
 
 ## Method references
 
