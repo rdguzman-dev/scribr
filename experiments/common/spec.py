@@ -24,11 +24,12 @@ class DatasetSpec:
 
     Attributes:
         split: Dataset split to draw from.
-        sample_size: Number of leading records to select.
+        sample_size: Number of leading records to select, or `None` to
+            select the entire split.
     """
 
     split: str = "test"
-    sample_size: int = 20
+    sample_size: int | None = 20
 
     def __post_init__(self) -> None:
         if self.split not in SPLITS:
@@ -37,8 +38,8 @@ class DatasetSpec:
                 f"{', '.join(SPLITS)}"
             )
 
-        if self.sample_size < 1:
-            raise ValueError("sample_size must be positive")
+        if self.sample_size is not None and self.sample_size < 1:
+            raise ValueError("sample_size must be positive or None")
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> DatasetSpec:
