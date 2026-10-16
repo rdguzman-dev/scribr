@@ -6,3 +6,6 @@ types and messages.
 
 Group changes into logically independent commits. A regular commit has only a
 concise one-line message and does not use an extended description.
+
+Only merge commits should include the relevant GitHub Issue number; general
+commits should omit this.
