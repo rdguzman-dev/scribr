@@ -296,7 +296,10 @@ class AlgorithmicTranscriber:
             )
         ]
 
-        attacks = librosa.onset.onset_backtrack(attacks, rms)
+        # `onset_backtrack` raises on an empty list, which happens when a
+        # note starts at the first sample and no spectral onset is found.
+        if attacks.size:
+            attacks = librosa.onset.onset_backtrack(attacks, rms)
 
         seconds_per_frame = config.hop_length / config.sample_rate
         melody = _segment_notes(
