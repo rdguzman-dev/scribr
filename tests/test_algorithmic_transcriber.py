@@ -59,11 +59,34 @@ def test_invalid_inputs(
         {"max_gap_seconds": float("nan")},
         {"sample_rate": 8000},
         {"quantize": "false"},
+        {"attack_reject_ratio": -0.1},
+        {"attack_reject_ratio": 1.1},
+        {"attack_reject_ratio": float("nan")},
+        {"attack_backtrack_seconds": -0.1},
+        {"attack_backtrack_seconds": float("inf")},
+        {"rms_window_hops": 0},
+        {"rms_window_hops": True},
+        {"rms_window_hops": 1.5},
     ],
 )
 def test_invalid_config(options):
     with pytest.raises(ValueError):
         AlgorithmicConfig(**options)
+
+
+def test_new_config_fields_default_to_current_behavior():
+    config = AlgorithmicConfig()
+
+    assert config.attack_reject_ratio == 0.7
+    assert config.attack_backtrack_seconds == 0.05
+    assert config.rms_window_hops == 2
+    assert AlgorithmicConfig(attack_reject_ratio=0.0).attack_reject_ratio == 0.0
+    assert AlgorithmicConfig(attack_reject_ratio=1.0).attack_reject_ratio == 1.0
+    assert (
+        AlgorithmicConfig(attack_backtrack_seconds=0.0).attack_backtrack_seconds
+        == 0.0
+    )
+    assert AlgorithmicConfig(rms_window_hops=1).rms_window_hops == 1
 
 
 def test_repeated_pitch_attacks_stay_separate():

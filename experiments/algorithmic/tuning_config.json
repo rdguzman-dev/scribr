@@ -2,7 +2,7 @@
   "experiment": "algorithmic_pyin_tuning",
   "dataset": {
     "split": "train",
-    "sample_size": 1000
+    "sample_size": 2000
   },
   "instruments": [
     "piano",
