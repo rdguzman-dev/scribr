@@ -74,9 +74,15 @@ artifacts are gitignored.
 
 ## Tune on training audio
 
-`tuning_config.json` selects the first 1,000 training melodies. Increase
-`sample_size` for more extensive tuning as time permits. Do not choose
-parameters on test data.
+`tuning_config.json` selects the first 2,000 training melodies and
+`validation_config.json` selects the first 2,000 validation melodies.
+Selection is a prefix, so the tuning stages and the validation split stay
+nested and reproducible. Do not choose parameters on test data.
+
+Both sets are materialized fresh. About 2,000 examples is roughly 1.5 GB of
+float32 audio in memory and 0.75 GB of WAV files on disk. The train prefix
+was checked to be representative: the attribute means are stable across the
+first 3,000 validation records.
 
 Tune `AlgorithmicConfig` parameters using a JSON mapping, for example:
 
@@ -97,8 +103,70 @@ uv run python -m experiments.algorithmic.evaluate \
 
 Download the train split before tuning. Record each run's parameters and
 inspect false/missing notes by instrument. Freeze parameters before running
-the test comparison. Tuning is a comparison of measured runs, not an
-automatic parameter search.
+the test comparison. Tuning is a comparison of measured runs; the search
+below automates the parameter choice.
+
+## Automatic tuning with Optuna
+
+`tune.py` searches `AlgorithmicConfig` with Optuna. Each trial builds a
+config, calls `AlgorithmicTranscriber.transcribe` end to end on a screen
+subset, and returns the mean `F-measure_no_offset`. Nothing is cached or
+scored on the test split.
+
+The dataset-specific fields are fixed: `sample_rate=22050`, the dataset
+pitch bounds, and `quantize=True`. Optuna suggests the rest:
+
+| Parameter | Search |
+| --- | --- |
+| `frame_length` | 1024, 2048, 4096 |
+| `hop_length` | 128, 256, 512 |
+| `silence_db` | -60 to -20 |
+| `min_note_seconds` | 0.02 to 0.15, log scale |
+| `max_gap_seconds` | 0 to 0.08 |
+| `onset_merge_seconds` | 0 to 0.1 |
+| `attack_reject_ratio` | 0 to 1 |
+| `attack_backtrack_seconds` | 0 to 0.1 |
+| `rms_window_hops` | 1, 2, 4, 8 |
+
+pYIN costs about 0.27 s per example, so scoring 100 trials on the full
+2,000-example tuning set would spend roughly 15 hours in pYIN alone. The
+runner uses two stages instead. Stage 1 scores every trial on a 500-example
+screen prefix; stage 2 re-scores the top 20 trials on the full tuning set.
+The champion is the stage-2 best, not `study.best_trial`. This keeps the
+search broad while making the final ranking less noisy.
+
+```bash
+export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
+uv run python -m experiments.algorithmic.tune \
+  --config experiments/algorithmic/tuning_config.json \
+  --validation-config experiments/algorithmic/validation_config.json \
+  --trials 100 \
+  --top-k 20 \
+  --artifacts-dir experiments/algorithmic/artifacts/tuning
+```
+
+The champion is the best of many trials on a finite prefix, so its tuning
+score is optimistic. `--validation-config` materializes a separate split
+under `artifacts/tuning/validation/` and scores the champion there. Report
+the validation score, not the tuning score.
+
+Outputs land in the artifacts directory:
+
+- `best_parameters.json`: the full champion config, accepted by
+  `evaluate.py --parameters`.
+- `trials_stage1.csv`: the Optuna trials table.
+- `finalists_stage2.csv`: each finalist's full-set scores and config,
+  ordered by stage-2 `F-measure_no_offset`.
+- `validation_metrics.json`: held-out metrics when `--validation-config`
+  is given.
+
+Every stage-1 trial, every stage-2 finalist, and a summary run are logged
+to the `algorithmic_tuning` MLflow experiment. The summary run carries the
+champion parameters, the tuning and validation metrics, and the output
+files. `--tracking-uri` points at another store. `--screen-examples`,
+`--final-examples`, `--top-k`, `--seed`, and `--n-jobs` change the run; the
+defaults assume the 2,000-example set. Leave `--n-jobs` at 1 because pYIN
+is CPU-bound and parallel trials do not nest in MLflow.
 
 ## Compare against the human baseline
 
