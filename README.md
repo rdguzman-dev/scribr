@@ -3,13 +3,14 @@
 Scribr explores algorithmic, supervised deep learning, and LLM-based
 approaches to automated music transcription for quantized monophonic audio.
 
-The repository contains the shared infrastructure and a first
-supervised deep learning approach:
+The repository contains shared infrastructure, an algorithmic baseline,
+and a first supervised deep learning approach:
 
 - `scribr.representation` defines the canonical `Note`, `Melody`, and
   `MelodyExample` types and the dataset pitch-sequence codec.
 - `scribr.data` streams the TFRecord dataset on demand.
 - `scribr.synthesis` renders a `Melody` to audio with FluidSynth.
+- `scribr.algorithmic` estimates notes with pYIN and spectral onset detection.
 - `scribr.deep_learning` trains a log-mel CNN to predict the dataset's
   pitch sequence and exposes it through `Transcriber`.
 - `scribr.midi` exports a `Melody` to a Standard MIDI File.
@@ -19,7 +20,7 @@ supervised deep learning approach:
 - `scribr.evaluation` scores a transcription against a reference
   `Melody` with `mir_eval`.
 
-The algorithmic and LLM approaches are not implemented yet.
+The LLM approach is not implemented yet.
 
 ## Setup
 
@@ -29,7 +30,7 @@ The algorithmic and LLM approaches are not implemented yet.
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - FluidSynth and a General MIDI SoundFont (only for audio synthesis)
 
-`uv sync` installs PyTorch, `torchaudio`, `numpy`, `mido`, `tfrecord`,
+`uv sync` installs `librosa`, PyTorch, `torchaudio`, `numpy`, `mido`, `tfrecord`,
 `pyfluidsynth`, `mir_eval`, `pytest`, and MLflow. TensorFlow is not
 required.
 
@@ -329,8 +330,11 @@ The supervised deep learning approach is implemented.
 `DeepLearningTranscriber` predicts one pitch-sequence token per dataset
 step and decodes it to a `Melody`. Training and evaluation live in
 [`experiments/deep_learning/logmel_cnn`](experiments/deep_learning/logmel_cnn/README.md).
-The algorithmic and LLM approaches are not implemented yet. Each new
-approach should implement `Transcriber` and return the canonical
+The algorithmic approach is implemented by `AlgorithmicTranscriber`; see
+[`experiments/algorithmic`](experiments/algorithmic/README.md) for evaluation
+and a direct comparison with the human baseline. The LLM approach is not
+implemented yet. Each new approach should implement `Transcriber` and return
+the canonical
 `Melody`:
 
 ```python
