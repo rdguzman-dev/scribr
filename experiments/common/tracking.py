@@ -34,6 +34,7 @@ def start_run(
     run_name: str | None = None,
     tracking_uri: str | Path = DEFAULT_TRACKING_URI,
     tags: Mapping[str, str] | None = None,
+    nested: bool = False,
 ) -> Generator[mlflow.ActiveRun, None, None]:
     """Track one training or evaluation run against a local store.
 
@@ -43,6 +44,8 @@ def start_run(
         tracking_uri: Tracking store URI, or a path to a SQLite database.
             Defaults to `mlflow.db` at the repository root.
         tags: Run tags, such as the model or dataset variant.
+        nested: Nest the run under the active parent run. Requires an
+            active run. Defaults to `False`.
 
     Yields:
         The active `mlflow.ActiveRun`.
@@ -57,6 +60,7 @@ def start_run(
         experiment_id=experiment_id,
         run_name=run_name,
         tags=dict(tags) if tags is not None else None,
+        nested=nested,
     ) as run:
         yield run
 
