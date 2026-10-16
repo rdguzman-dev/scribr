@@ -2,7 +2,7 @@
   "experiment": "algorithmic_pyin",
   "dataset": {
     "split": "test",
-    "sample_size": 20
+    "sample_size": null
   },
   "instruments": [
     "piano",

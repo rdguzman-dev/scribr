@@ -51,7 +51,7 @@ class ListDataset:
 
 def make_spec(
     *,
-    sample_size: int = 2,
+    sample_size: int | None = 2,
     instruments: tuple[Instrument, ...] = INSTRUMENTS,
 ) -> ExperimentSpec:
     return ExperimentSpec(
@@ -144,6 +144,27 @@ def test_selection_and_round_robin_assignment(tmp_path: Path) -> None:
         "002-electric_guitar",
         "003-violin",
         "004-piano",
+    ]
+
+
+def test_sample_size_none_selects_the_whole_split(tmp_path: Path) -> None:
+    dataset = ListDataset(make_examples(6))
+    spec = make_spec(sample_size=None)
+
+    manifest = materialize(
+        spec,
+        tmp_path,
+        dataset=dataset,
+        synthesizers=make_synthesizers(),
+    )
+
+    assert [example.index for example in manifest.examples] == [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
     ]
 
 

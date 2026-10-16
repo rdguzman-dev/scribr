@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -34,6 +35,19 @@ def test_committed_config_loads() -> None:
         Instrument.VIOLIN,
     )
     assert spec.synthesis == SynthesisSpec()
+
+
+def test_sample_size_none_selects_the_whole_split(tmp_path: Path) -> None:
+    spec = ExperimentSpec.load(CONFIG_PATH)
+    whole_split = replace(
+        spec,
+        dataset=DatasetSpec(split="test", sample_size=None),
+    )
+    path = tmp_path / "config.json"
+    whole_split.save(path)
+
+    assert ExperimentSpec.load(path).dataset.sample_size is None
+    assert json.loads(path.read_text())["dataset"]["sample_size"] is None
 
 
 def test_json_round_trip(tmp_path: Path) -> None:

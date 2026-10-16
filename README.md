@@ -52,7 +52,7 @@ the layout `MelodyDataset` expects:
 data/raw/4-bars-monophonic/
 ├── train/       # 8 shards, 10,126,676 melodies
 ├── validation/  # 8 shards, 70,908 melodies
-└── test/        # 8 shards, 22,265 melodies
+└── test/        # 8 shards, 22,060 melodies
 ```
 
 The dataset is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

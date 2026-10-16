@@ -159,8 +159,9 @@ def materialize(
 
     An existing manifest is reused when it matches `spec`; pass
     `force=True` to rebuild the artifacts. Selection takes the first
-    `spec.dataset.sample_size` records of the split, so identical inputs
-    always produce identical artifacts.
+    `spec.dataset.sample_size` records of the split, or the entire split
+    when it is `None`, so identical inputs always produce identical
+    artifacts.
 
     Args:
         spec: Experiment configuration.
@@ -181,7 +182,8 @@ def materialize(
 
     Raises:
         ValueError: If the existing manifest was built from a different
-            config, or the split has fewer than `sample_size` examples.
+            config, or the split has fewer than `sample_size` examples
+            when a size is set.
     """
     artifacts = Path(artifacts_dir)
     manifest_path = artifacts / "manifest.json"
@@ -205,14 +207,17 @@ def materialize(
     if dataset is None:
         dataset = MelodyDataset(split=spec.dataset.split)
 
-    examples = list(islice(dataset, spec.dataset.sample_size))
+    if spec.dataset.sample_size is None:
+        examples = list(dataset)
+    else:
+        examples = list(islice(dataset, spec.dataset.sample_size))
 
-    if len(examples) < spec.dataset.sample_size:
-        raise ValueError(
-            f"{spec.dataset.split!r} split contains only "
-            f"{len(examples)} example(s); "
-            f"sample_size is {spec.dataset.sample_size}"
-        )
+        if len(examples) < spec.dataset.sample_size:
+            raise ValueError(
+                f"{spec.dataset.split!r} split contains only "
+                f"{len(examples)} example(s); "
+                f"sample_size is {spec.dataset.sample_size}"
+            )
 
     if synthesizers is None:
         resolved_soundfont = resolve_soundfont_path(soundfont_path)

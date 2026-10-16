@@ -170,7 +170,8 @@ def test_test_baseline_and_training_tuning_configs_use_separate_splits():
         directory.parent / "human_baseline" / "config.json"
     )
 
-    assert baseline.dataset == human.dataset == DatasetSpec("test", 20)
+    assert baseline.dataset == DatasetSpec("test", None)
+    assert human.dataset == DatasetSpec("test", 20)
     assert baseline.instruments == human.instruments
     assert baseline.synthesis == human.synthesis
     assert tuning.dataset.split == "train"
