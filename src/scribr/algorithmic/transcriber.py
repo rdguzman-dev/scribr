@@ -32,6 +32,12 @@ class AlgorithmicConfig:
         onset_merge_seconds: Attacks this close to a pitch boundary merge.
         quantize: Snap note times to the dataset grid. Disable only for
             the unquantized ablation.
+        attack_reject_ratio: Onset candidate kept when its RMS is at
+            least this fraction of the earlier frame's RMS.
+        attack_backtrack_seconds: Energy lookback window, in seconds,
+            compared against the candidate's RMS.
+        rms_window_hops: RMS analysis window, as a multiple of
+            `hop_length`.
     """
 
     sample_rate: int = 22_050
@@ -44,6 +50,9 @@ class AlgorithmicConfig:
     max_gap_seconds: float = 0.03
     onset_merge_seconds: float = 0.04
     quantize: bool = True
+    attack_reject_ratio: float = 0.7
+    attack_backtrack_seconds: float = 0.05
+    rms_window_hops: int = 2
 
     def __post_init__(self) -> None:
         if not isinstance(self.quantize, bool):
@@ -84,10 +93,24 @@ class AlgorithmicConfig:
         if not math.isfinite(self.silence_db) or self.silence_db >= 0:
             raise ValueError("silence_db must be finite and negative")
 
+        if (
+            not math.isfinite(self.attack_reject_ratio)
+            or not 0.0 <= self.attack_reject_ratio <= 1.0
+        ):
+            raise ValueError("attack_reject_ratio must be in [0, 1]")
+
+        if (
+            not isinstance(self.rms_window_hops, int)
+            or isinstance(self.rms_window_hops, bool)
+            or self.rms_window_hops < 1
+        ):
+            raise ValueError("rms_window_hops must be a positive integer")
+
         for name in (
             "min_note_seconds",
             "max_gap_seconds",
             "onset_merge_seconds",
+            "attack_backtrack_seconds",
         ):
             value = getattr(self, name)
             if not math.isfinite(value) or value < 0:
@@ -168,7 +191,7 @@ class AlgorithmicTranscriber:
 
         rms = librosa.feature.rms(
             y=waveform,
-            frame_length=2 * config.hop_length,
+            frame_length=config.rms_window_hops * config.hop_length,
             hop_length=config.hop_length,
             center=True,
         )[0]
@@ -193,11 +216,20 @@ class AlgorithmicTranscriber:
         # whose energy has fallen, then backtrack on a short energy window
         # so the longer pitch window does not pull attacks into silence.
         lookback = max(
-            1, math.ceil(0.05 * config.sample_rate / config.hop_length)
+            1,
+            math.ceil(
+                config.attack_backtrack_seconds
+                * config.sample_rate
+                / config.hop_length
+            ),
         )
         attacks = attacks[
             (rms[attacks] > threshold)
-            & (rms[attacks] >= 0.7 * rms[np.maximum(attacks - lookback, 0)])
+            & (
+                rms[attacks]
+                >= config.attack_reject_ratio
+                * rms[np.maximum(attacks - lookback, 0)]
+            )
         ]
         attacks = librosa.onset.onset_backtrack(attacks, rms)
 
