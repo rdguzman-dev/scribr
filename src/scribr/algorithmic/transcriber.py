@@ -120,6 +120,16 @@ class AlgorithmicConfig:
             raise ValueError("min_note_seconds must be positive")
 
 
+@dataclass(frozen=True, slots=True)
+class _PitchTrack:
+    """Resampled waveform and pYIN output for one recording."""
+
+    waveform: np.ndarray
+    f0: np.ndarray
+    voiced: np.ndarray
+    duration: float
+
+
 class AlgorithmicTranscriber:
     """Estimate notes without training or access to reference melodies.
 
@@ -150,11 +160,26 @@ class AlgorithmicTranscriber:
         Raises:
             ValueError: If audio, sample rate, or tempo is invalid.
         """
-        if not isinstance(sample_rate, int) or sample_rate <= 0:
-            raise ValueError("sample_rate must be a positive integer")
-
         if not math.isfinite(tempo) or tempo <= 0:
             raise ValueError("tempo must be finite and positive")
+
+        track = self._analyze(audio, sample_rate)
+
+        if track is None:
+            return Melody()
+
+        return self._decode(track, tempo)
+
+    def _prepare(
+        self, audio: np.ndarray, sample_rate: int
+    ) -> tuple[np.ndarray, float] | None:
+        """Validate the input and return the waveform and duration.
+
+        Returns `None` for silence. The resampled waveform is cheap to
+        rebuild, so only the pYIN output is cached by the tuning search.
+        """
+        if not isinstance(sample_rate, int) or sample_rate <= 0:
+            raise ValueError("sample_rate must be a positive integer")
 
         audio = np.asarray(audio)
         if audio.ndim != 1 or not np.issubdtype(audio.dtype, np.number):
@@ -167,7 +192,7 @@ class AlgorithmicTranscriber:
             raise ValueError("audio samples must be in [-1, 1]")
 
         if not audio.size or not np.any(audio):
-            return Melody()
+            return None
 
         config = self.config
         duration = len(audio) / sample_rate
@@ -178,6 +203,18 @@ class AlgorithmicTranscriber:
                 waveform, orig_sr=sample_rate, target_sr=config.sample_rate
             )
 
+        return waveform, duration
+
+    def _track_pitch(
+        self, waveform: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Estimate f0 and voicing with pYIN.
+
+        Only `frame_length`, `hop_length`, the pitch bounds, and the
+        analysis sample rate change this result, so a parameter search
+        can cache it.
+        """
+        config = self.config
         f0, voiced, _ = librosa.pyin(
             waveform,
             sr=config.sample_rate,
@@ -189,6 +226,26 @@ class AlgorithmicTranscriber:
             fill_na=np.nan,
         )
 
+        return f0, voiced
+
+    def _analyze(
+        self, audio: np.ndarray, sample_rate: int
+    ) -> _PitchTrack | None:
+        """Return the pYIN track, or `None` for silence."""
+        prepared = self._prepare(audio, sample_rate)
+
+        if prepared is None:
+            return None
+
+        waveform, duration = prepared
+        f0, voiced = self._track_pitch(waveform)
+
+        return _PitchTrack(waveform, f0, voiced, duration)
+
+    def _decode(self, track: _PitchTrack, tempo: float) -> Melody:
+        config = self.config
+        waveform = track.waveform
+
         rms = librosa.feature.rms(
             y=waveform,
             frame_length=config.rms_window_hops * config.hop_length,
@@ -197,9 +254,16 @@ class AlgorithmicTranscriber:
         )[0]
 
         threshold = rms.max() * 10 ** (config.silence_db / 20)
-        valid = voiced & np.isfinite(f0) & (f0 > 0) & (rms > threshold)
-        pitches = np.full(len(f0), -1, dtype=int)
-        pitches[valid] = np.rint(librosa.hz_to_midi(f0[valid])).astype(int)
+        valid = (
+            track.voiced
+            & np.isfinite(track.f0)
+            & (track.f0 > 0)
+            & (rms > threshold)
+        )
+        pitches = np.full(len(track.f0), -1, dtype=int)
+        pitches[valid] = np.rint(librosa.hz_to_midi(track.f0[valid])).astype(
+            int
+        )
         pitches[
             (pitches < config.min_pitch) | (pitches > config.max_pitch)
         ] = -1
@@ -231,15 +295,24 @@ class AlgorithmicTranscriber:
                 * rms[np.maximum(attacks - lookback, 0)]
             )
         ]
-        attacks = librosa.onset.onset_backtrack(attacks, rms)
+
+        # `onset_backtrack` raises on an empty list, which happens when a
+        # note starts at the first sample and no spectral onset is found.
+        if attacks.size:
+            attacks = librosa.onset.onset_backtrack(attacks, rms)
 
         seconds_per_frame = config.hop_length / config.sample_rate
         melody = _segment_notes(
-            pitches, attacks, seconds_per_frame, duration, tempo, config
+            pitches,
+            attacks,
+            seconds_per_frame,
+            track.duration,
+            tempo,
+            config,
         )
 
         if config.quantize:
-            return _quantize_notes(melody, duration * tempo / 60)
+            return _quantize_notes(melody, track.duration * tempo / 60)
 
         return melody
 

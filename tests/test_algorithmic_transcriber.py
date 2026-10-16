@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from scribr.algorithmic import AlgorithmicConfig, AlgorithmicTranscriber
+from scribr.algorithmic import transcriber as algorithmic_transcriber
 from scribr.algorithmic.transcriber import _quantize_notes, _segment_notes
 from scribr.evaluation import evaluate
 from scribr.representation import Melody, Note
@@ -176,6 +177,19 @@ def test_real_repeated_pitch_with_new_attack():
     reference = Melody((Note(69, 0, 1), Note(69, 1, 2)))
     assert [note.pitch for note in estimate] == [69, 69]
     assert evaluate(reference, estimate, tempo=120)["F-measure_no_offset"] == 1
+
+
+def test_no_detected_attacks_is_handled(monkeypatch):
+    # An empty onset list used to raise inside `onset_backtrack`.
+    monkeypatch.setattr(
+        algorithmic_transcriber.librosa.onset,
+        "onset_detect",
+        lambda **options: np.array([], dtype=int),
+    )
+    estimate = AlgorithmicTranscriber().transcribe(
+        _tone(69, duration=0.5), 22050, 120
+    )
+    assert [note.pitch for note in estimate] == [69]
 
 
 def test_quantization_snaps_times_without_overlapping_notes():

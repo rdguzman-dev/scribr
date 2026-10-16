@@ -14,7 +14,7 @@ from optuna.samplers import RandomSampler
 
 from experiments.algorithmic import tune
 from experiments.common.scoring import ExperimentEvaluation
-from scribr.algorithmic import AlgorithmicConfig
+from scribr.algorithmic import AlgorithmicConfig, AlgorithmicTranscriber
 from scribr.representation import DATASET_MAX_PITCH, DATASET_MIN_PITCH, Melody
 
 
@@ -96,6 +96,65 @@ def test_default_trial_params_cover_the_search_space() -> None:
         "attack_backtrack_seconds",
         "rms_window_hops",
     }
+
+
+def test_build_transcriber_uses_the_track_cache() -> None:
+    config = AlgorithmicConfig()
+    cache: dict = {}
+
+    cached = tune._build_transcriber(config, cache)
+    plain = tune._build_transcriber(config, None)
+
+    assert isinstance(cached, tune._CachedAlgorithmicTranscriber)
+    assert type(plain) is AlgorithmicTranscriber
+
+
+def test_cached_track_reuses_pyin_across_segmentation_configs(
+    monkeypatch,
+) -> None:
+    calls = []
+
+    def fake_track(self, waveform):
+        calls.append((self.config.frame_length, self.config.hop_length))
+        return object()
+
+    monkeypatch.setattr(
+        tune.AlgorithmicTranscriber, "_track_pitch", fake_track
+    )
+    audio = np.zeros(8, dtype=np.float32)
+    cache: dict = {}
+
+    first = tune._CachedAlgorithmicTranscriber(
+        AlgorithmicConfig(frame_length=2048, hop_length=256), cache
+    )
+    track = first._track_pitch(audio)
+
+    assert calls == [(2048, 256)]
+
+    # Only segmentation parameters differ, so the pYIN track is reused.
+    second = tune._CachedAlgorithmicTranscriber(
+        AlgorithmicConfig(
+            frame_length=2048, hop_length=256, silence_db=-30.0
+        ),
+        cache,
+    )
+
+    assert second._track_pitch(audio) is track
+    assert calls == [(2048, 256)]
+
+    # A different hop changes the pYIN input, so it recomputes.
+    third = tune._CachedAlgorithmicTranscriber(
+        AlgorithmicConfig(frame_length=2048, hop_length=512), cache
+    )
+
+    assert third._track_pitch(audio) is not track
+    assert calls == [(2048, 256), (2048, 512)]
+
+    # Different audio under the same config is a separate entry.
+    assert (
+        first._track_pitch(np.ones(8, dtype=np.float32)) is not track
+    )
+    assert calls == [(2048, 256), (2048, 512), (2048, 256)]
 
 
 def test_objective_records_stage_one_metrics(monkeypatch) -> None:

@@ -6,9 +6,12 @@ full tuning set, and the champion is scored on a held-out validation
 split. Nothing is tuned or scored on the test split.
 
 pYIN costs roughly 0.27 s per example, so scoring every trial on the full
-2,000-example tuning set is expensive. Stage 1 screens every trial on a
-500-example nested prefix; stage 2 re-ranks only the top finalists on the
-full set. The winner is the stage-2 best, not `study.best_trial`.
+2,000-example tuning set is expensive. Only `frame_length` and
+`hop_length` change the pYIN result, so the runner caches that pass per
+example and reuses it across trials that share them. Stage 1 screens
+every trial on a 500-example nested prefix; stage 2 re-ranks only the top
+finalists on the full set. The winner is the stage-2 best, not
+`study.best_trial`.
 
 ```bash
 uv run python -m experiments.algorithmic.tune \
@@ -23,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
@@ -213,17 +217,66 @@ def _search_space() -> dict[str, Any]:
     }
 
 
+class _CachedAlgorithmicTranscriber(AlgorithmicTranscriber):
+    """Reuse the pYIN pass across trials that share its inputs.
+
+    Optuna varies many parameters per trial, but only `frame_length`,
+    `hop_length`, the pitch bounds, and the analysis sample rate change
+    the pYIN result. Caching that pass on the resampled waveform makes
+    every later trial over the same recording segmentation only.
+    """
+
+    def __init__(
+        self, config: AlgorithmicConfig, cache: dict[tuple, Any]
+    ) -> None:
+        super().__init__(config)
+        self._cache = cache
+
+    def _track_pitch(self, waveform: np.ndarray):
+        key = (
+            hashlib.blake2b(
+                np.asarray(waveform).tobytes(), digest_size=16
+            ).digest(),
+            self.config.sample_rate,
+            self.config.frame_length,
+            self.config.hop_length,
+            self.config.min_pitch,
+            self.config.max_pitch,
+        )
+
+        if key not in self._cache:
+            self._cache[key] = super()._track_pitch(waveform)
+
+        return self._cache[key]
+
+
+def _build_transcriber(
+    config: AlgorithmicConfig, track_cache: dict[tuple, Any] | None
+) -> AlgorithmicTranscriber:
+    """Return a transcriber that reuses `track_cache` when given."""
+    if track_cache is None:
+        return AlgorithmicTranscriber(config)
+
+    return _CachedAlgorithmicTranscriber(config, track_cache)
+
+
 def _make_objective(
     recordings: Sequence[Recording],
     tempo: float,
+    *,
+    track_cache: dict[tuple, Any] | None = None,
 ):
-    """Return the stage-1 Optuna objective over `recordings`."""
+    """Return the stage-1 Optuna objective over `recordings`.
+
+    `track_cache` is shared across trials so the pYIN pass is not
+    repeated for configs that only differ in segmentation parameters.
+    """
 
     def objective(trial: optuna.Trial) -> float:
         config = _suggest_config(trial)
         trial.set_user_attr("config", asdict(config))
         evaluation, _ = score_recordings(
-            recordings, AlgorithmicTranscriber(config), tempo
+            recordings, _build_transcriber(config, track_cache), tempo
         )
         trial.set_user_attr(
             PRIMARY_METRIC, evaluation.metrics[PRIMARY_METRIC]
@@ -428,6 +481,7 @@ def run_tuning(
     validate_limits(screen_examples, final_examples, top_k, total)
     screen = recordings[:screen_examples]
     final = recordings[:final_examples]
+    track_cache: dict[tuple, Any] = {}
     artifacts = Path(artifacts_dir)
     artifacts.mkdir(parents=True, exist_ok=True)
     name = run_name or "algorithmic-tuning"
@@ -474,7 +528,7 @@ def run_tuning(
             )
 
         study.optimize(
-            _make_objective(screen, tempo),
+            _make_objective(screen, tempo, track_cache=track_cache),
             n_trials=trials,
             timeout=timeout,
             n_jobs=n_jobs,
@@ -487,7 +541,9 @@ def run_tuning(
 
         for tuned in finalist_trials:
             evaluation, _ = score_recordings(
-                final, AlgorithmicTranscriber(tuned.config), tempo
+                final,
+                _build_transcriber(tuned.config, track_cache),
+                tempo,
             )
             finalist = Finalist(
                 trial=tuned,
@@ -517,7 +573,7 @@ def run_tuning(
         if validation_recordings is not None:
             evaluation, _ = score_recordings(
                 list(validation_recordings),
-                AlgorithmicTranscriber(champion.trial.config),
+                _build_transcriber(champion.trial.config, track_cache),
                 tempo,
             )
             validation_metrics = dict(evaluation.metrics)

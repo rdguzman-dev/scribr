@@ -129,11 +129,14 @@ pitch bounds, and `quantize=True`. Optuna suggests the rest:
 | `rms_window_hops` | 1, 2, 4, 8 |
 
 pYIN costs about 0.27 s per example, so scoring 100 trials on the full
-2,000-example tuning set would spend roughly 15 hours in pYIN alone. The
-runner uses two stages instead. Stage 1 scores every trial on a 500-example
-screen prefix; stage 2 re-scores the top 20 trials on the full tuning set.
-The champion is the stage-2 best, not `study.best_trial`. This keeps the
-search broad while making the final ranking less noisy.
+2,000-example tuning set would spend roughly 15 hours in pYIN alone.
+Only `frame_length` and `hop_length` feed pYIN, so the runner caches that
+pass per example and reuses it across trials that share them. Later
+trials over the same recording only rerun segmentation. On top of that,
+the runner uses two stages. Stage 1 scores every trial on a 500-example
+screen prefix; stage 2 re-scores the top 20 trials on the full tuning
+set. The champion is the stage-2 best, not `study.best_trial`. This keeps
+the search broad while making the final ranking less noisy.
 
 ```bash
 export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
