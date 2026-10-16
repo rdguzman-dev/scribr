@@ -125,6 +125,24 @@ Compare `F-measure_no_offset` first (pitch and onset together), and report
 `F-measure` second (pitch, onset, and offset). Onset-only F1 is insufficient.
 Silent examples remain included and score zero, matching the shared evaluator.
 
+## Quantization ablation
+
+`ablation.py` runs the transcriber on the same audio twice, once with
+`quantize=false` and once with the quantizing default, and reports the
+paired comparison. Use it to check whether snapping to the grid changes
+scores on a split before trusting it:
+
+```bash
+uv run python -m experiments.algorithmic.ablation \
+  --manifest experiments/human_baseline/artifacts/manifest.json
+```
+
+`--config PATH`, `--soundfont PATH`, and `--parameters PATH` behave as in
+`evaluate.py`. `--parameters` sets the config shared by both arms and the
+arms override `quantize`. The run writes `ablation.json` and `ablation.md`
+to `--artifacts-dir` with overall scores, per-instrument means, per-example
+deltas, and off-grid counts for each arm.
+
 ## Method references
 
 - [librosa onset detection](https://librosa.org/doc/latest/api/onset.html).

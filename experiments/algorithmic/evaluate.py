@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import wave
+from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
 
@@ -13,10 +14,14 @@ import numpy as np
 from experiments.common.materialize import Manifest, materialize
 from experiments.common.predictions import TextPredictions
 from experiments.common.report import write_report
-from experiments.common.scoring import evaluate_predictions
+from experiments.common.scoring import (
+    ExperimentEvaluation,
+    evaluate_predictions,
+)
 from experiments.common.spec import ExperimentSpec
 from scribr.algorithmic import AlgorithmicConfig, AlgorithmicTranscriber
 from scribr.representation import Melody, melody_from_text
+from scribr.transcription import Transcriber
 
 _DIR = Path(__file__).resolve().parent
 _ARTIFACTS_DIR = _DIR / "artifacts"
@@ -31,7 +36,12 @@ def _read_verified(path: Path, expected_hash: str) -> bytes:
     return data
 
 
-def _manifest_audio(manifest: Manifest, artifacts_dir: Path):
+def load_recordings(manifest: Manifest, artifacts_dir: Path):
+    """Yield `(id, reference, audio, sample_rate, group)` per example.
+
+    WAV and reference files are verified against the manifest hashes
+    before being decoded.
+    """
     if not manifest.examples:
         raise ValueError("manifest must contain at least one example")
 
@@ -72,6 +82,42 @@ def _manifest_audio(manifest: Manifest, artifacts_dir: Path):
             sample_rate,
             example.instrument.value,
         )
+
+
+def score_recordings(
+    recordings: Iterable[tuple[str, Melody, np.ndarray, int, str]],
+    transcriber: Transcriber,
+    tempo: float,
+    *,
+    verbose: bool = False,
+) -> tuple[ExperimentEvaluation, dict[str, Melody]]:
+    """Transcribe and score recordings, returning scores and estimates.
+
+    Args:
+        recordings: `(id, reference, audio, sample_rate, group)` items.
+        transcriber: Approach to run on each recording.
+        tempo: Tempo in BPM used to convert beats to seconds.
+        verbose: Print one line per transcribed example.
+
+    Returns:
+        The batch evaluation and the estimate per example ID.
+    """
+    estimates: dict[str, Melody] = {}
+
+    def items():
+        for example_id, reference, audio, sample_rate, group in recordings:
+            estimate = transcriber.transcribe(audio, sample_rate, tempo)
+            estimates[example_id] = estimate
+
+            if verbose:
+                print(
+                    f"Transcribed {example_id}: {len(estimate)} note(s)",
+                    flush=True,
+                )
+
+            yield example_id, reference, estimate, group
+
+    return evaluate_predictions(items(), tempo=tempo), estimates
 
 
 def main() -> None:
@@ -115,23 +161,10 @@ def main() -> None:
         )
         source_dir = artifacts_dir
 
-    estimates: dict[str, Melody] = {}
-
-    def items():
-        for example_id, reference, audio, sample_rate, group in _manifest_audio(
-            manifest, source_dir
-        ):
-            estimate = transcriber.transcribe(
-                audio, sample_rate, spec.synthesis.tempo
-            )
-            estimates[example_id] = estimate
-            print(
-                f"Transcribed {example_id}: {len(estimate)} note(s)",
-                flush=True,
-            )
-            yield example_id, reference, estimate, group
-
-    evaluation = evaluate_predictions(items(), tempo=spec.synthesis.tempo)
+    recordings = list(load_recordings(manifest, source_dir))
+    evaluation, estimates = score_recordings(
+        recordings, transcriber, spec.synthesis.tempo, verbose=True
+    )
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     provenance = {"manifest": manifest.to_dict()}
 

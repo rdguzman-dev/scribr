@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from experiments.algorithmic import ablation
 from experiments.algorithmic import evaluate as experiment
 from experiments.common.materialize import Manifest, ManifestExample
 from experiments.common.spec import DatasetSpec, ExperimentSpec, SynthesisSpec
@@ -49,7 +50,7 @@ def _manifest(tmp_path):
 def test_manifest_audio_is_verified_and_decoded(tmp_path):
     path, reference = _manifest(tmp_path)
     manifest = Manifest.load(path)
-    items = list(experiment._manifest_audio(manifest, path.parent))
+    items = list(experiment.load_recordings(manifest, path.parent))
     assert len(items) == 1
     example_id, loaded, audio, sample_rate, instrument = items[0]
     assert (example_id, loaded, sample_rate, instrument) == (
@@ -62,7 +63,7 @@ def test_manifest_audio_is_verified_and_decoded(tmp_path):
     assert audio.shape == (22050,)
     (tmp_path / "reference.txt").write_text("C4, 0, 1\n")
     with pytest.raises(ValueError, match="hash mismatch"):
-        list(experiment._manifest_audio(manifest, path.parent))
+        list(experiment.load_recordings(manifest, path.parent))
 
 
 def test_manifest_rejects_sample_rate_mismatch(tmp_path):
@@ -75,7 +76,7 @@ def test_manifest_rejects_sample_rate_mismatch(tmp_path):
     mismatched = replace(manifest, config=spec)
     mismatched.save(path)
     with pytest.raises(ValueError, match="sample rate"):
-        list(experiment._manifest_audio(mismatched, path.parent))
+        list(experiment.load_recordings(mismatched, path.parent))
 
 
 def _stub_transcriber(reference, received=None):
@@ -176,3 +177,86 @@ def test_test_baseline_and_training_tuning_configs_use_separate_splits():
     assert tuning.dataset.sample_size == 1000
     assert tuning.instruments == baseline.instruments
     assert tuning.synthesis == baseline.synthesis
+
+
+class _QuantizeAwareTranscriber:
+    """Return an off-grid estimate without quantization and an on-grid
+    estimate with it, so the two ablation arms differ."""
+
+    def __init__(self, config):
+        self.config = config
+
+    def transcribe(self, audio, sample_rate, tempo):
+        if self.config.quantize:
+            return Melody((Note(69, 0, 1),))
+
+        return Melody((Note(69, 0.3, 1.3),))
+
+
+def _ablation_result():
+    recordings = [
+        (
+            "000-piano",
+            Melody((Note(69, 0, 1),)),
+            np.zeros(1, dtype=np.float32),
+            22050,
+            "piano",
+        )
+    ]
+
+    return ablation.run_ablation(
+        recordings,
+        120,
+        transcriber_factory=_QuantizeAwareTranscriber,
+    )
+
+
+def test_run_ablation_scores_both_arms():
+    result = _ablation_result()
+    assert [arm.arm.name for arm in result.arms] == [
+        "unquantized",
+        "quantized",
+    ]
+    assert result.winner == "quantized"
+    assert result.scores == {"unquantized": 0.0, "quantized": 1.0}
+
+
+def test_write_ablation_report_compares_arms(tmp_path):
+    result = _ablation_result()
+    json_path, markdown_path = ablation.write_ablation_report(
+        result, artifacts_dir=tmp_path
+    )
+    data = json.loads(json_path.read_text())
+    assert data["winner"] == "quantized"
+    assert [arm["name"] for arm in data["arms"]] == [
+        "unquantized",
+        "quantized",
+    ]
+    assert data["arms"][0]["off_grid_onsets"] == 1
+    assert data["arms"][1]["off_grid_onsets"] == 0
+    assert data["difference"]["F-measure_no_offset"] == 1.0
+    assert data["examples"][0]["primary_delta"] == 1.0
+    markdown = markdown_path.read_text()
+    assert "Higher mean `F-measure_no_offset`: quantized" in markdown
+
+
+def test_ablation_cli_writes_comparison(tmp_path, monkeypatch):
+    path, _ = _manifest(tmp_path)
+    monkeypatch.setattr(
+        ablation, "AlgorithmicTranscriber", _QuantizeAwareTranscriber
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "ablation",
+            "--manifest",
+            str(path),
+            "--artifacts-dir",
+            str(tmp_path),
+        ],
+    )
+    ablation.main()
+    data = json.loads((tmp_path / "ablation.json").read_text())
+    assert data["winner"] == "quantized"
+    assert (tmp_path / "ablation.md").is_file()
