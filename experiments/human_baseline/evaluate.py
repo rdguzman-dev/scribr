@@ -11,7 +11,7 @@ from scribr.evaluation import (
     DEFAULT_ONSET_TOLERANCE_SECONDS,
     DEFAULT_PITCH_TOLERANCE_CENTS,
 )
-from scribr.representation import melody_from_text
+from scribr.representation import Melody, Note, melody_from_text
 
 from experiments.common.materialize import Manifest
 from experiments.common.predictions import (
@@ -24,6 +24,13 @@ from experiments.common.scoring import evaluate_predictions
 _DIR = Path(__file__).resolve().parent
 _ARTIFACTS_DIR = _DIR / "artifacts"
 _TRANSCRIPTIONS_DIR = _DIR / "transcriptions"
+
+# GarageBand (and some other DAWs) label middle C, MIDI 60, as C3. The
+# project's note tables use scientific pitch notation, where middle C is C4,
+# so every baseline transcription is one octave below the reference. Shift
+# the parsed notes up before scoring; the committed files keep the notes as
+# written in GarageBand. See the README for the middle C conventions.
+_TRANSPOSITION_SEMITONES = 12
 
 
 def main() -> None:
@@ -67,6 +74,7 @@ def main() -> None:
         if estimate is None:
             continue
 
+        estimate = _transpose(estimate, _TRANSPOSITION_SEMITONES)
         reference = melody_from_text(
             (_ARTIFACTS_DIR / example.reference).read_text(encoding="utf-8")
         )
@@ -99,6 +107,15 @@ def main() -> None:
 
     print(f"Wrote {json_path}")
     print(f"Wrote {markdown_path}")
+
+
+def _transpose(melody: Melody, semitones: int) -> Melody:
+    return Melody(
+        tuple(
+            Note(note.pitch + semitones, note.onset, note.offset)
+            for note in melody.notes
+        )
+    )
 
 
 def _print_check(predictions: TextPredictions) -> None:

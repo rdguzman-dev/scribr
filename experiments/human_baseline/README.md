@@ -59,6 +59,26 @@ and offset are quarter-note beats from the start of the WAV. The header row is
 optional. Times do not have to be aligned to the 0.25-beat grid. Scoring uses
 the times exactly as written and reports how many rows fall off the grid.
 
+### Middle C conventions
+
+MIDI fixes the note number, not the octave label, so tools disagree about
+what to call middle C (MIDI 60).
+
+| Convention | Middle C (MIDI 60) | Used by |
+| --- | --- | --- |
+| Scientific pitch notation | `C4` | Scribr's note tables, MuseScore |
+| Middle C is `C3` | `C3` | GarageBand, Logic Pro, Cubase, Ableton Live |
+| Middle C is `C5` | `C5` | FL Studio |
+
+The baseline transcriptions were recorded in GarageBand, which labels middle
+C as `C3`. Read literally, every pitch is one octave below the reference, so
+the scoring pipeline shifts parsed notes up 12 semitones before matching. The
+files in `transcriptions/` keep the names as written in GarageBand; the shift
+happens at scoring time in `evaluate.py`.
+
+If a future transcription session uses a different convention, change
+`_TRANSPOSITION_SEMITONES` in `evaluate.py` to match.
+
 ### Transcription setup
 
 The transcription was performed in GarageBand. A digital synthesizer capable of
