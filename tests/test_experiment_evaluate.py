@@ -215,8 +215,9 @@ def test_cli_partial_writes_report(
 ) -> None:
     write_artifacts(tmp_path)
     (tmp_path / "transcriptions").mkdir()
+    # GarageBand names the reference C4 as C3; scoring shifts it up.
     (tmp_path / "transcriptions" / "000-piano.txt").write_text(
-        "C4, 0.0, 0.5\n"
+        "C3, 0.0, 0.5\n"
     )
 
     run_cli(tmp_path, monkeypatch, "--partial")
@@ -229,17 +230,18 @@ def test_cli_partial_writes_report(
     assert (tmp_path / "report.md").is_file()
 
 
-def test_cli_complete_run_writes_report(
+def test_cli_complete_run_shifts_octave_and_writes_report(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture,
 ) -> None:
+    """The GarageBand C3 label is shifted up to the C4 reference."""
     manifest = write_artifacts(tmp_path)
     (tmp_path / "transcriptions").mkdir()
 
     for example in manifest.examples:
         (tmp_path / "transcriptions" / f"{example.id}.txt").write_text(
-            "C4, 0.0, 0.5\n"
+            "C3, 0.0, 0.5\n"
         )
 
     run_cli(tmp_path, monkeypatch)
