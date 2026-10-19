@@ -13,6 +13,7 @@ from mlflow.tracking import MlflowClient
 from optuna.samplers import RandomSampler
 
 from experiments.algorithmic import tune
+from experiments.algorithmic.evaluate import Recording
 from experiments.common.scoring import ExperimentEvaluation
 from scribr.algorithmic import AlgorithmicConfig, AlgorithmicTranscriber
 from scribr.representation import DATASET_MAX_PITCH, DATASET_MIN_PITCH, Melody
@@ -20,12 +21,12 @@ from scribr.representation import DATASET_MAX_PITCH, DATASET_MIN_PITCH, Melody
 
 def _recordings(count: int):
     return [
-        (
-            f"{index:03d}-piano",
-            Melody(),
-            np.zeros(8, dtype=np.float32),
-            22050,
-            "piano",
+        Recording(
+            example_id=f"{index:03d}-piano",
+            reference=Melody(),
+            audio=np.zeros(8, dtype=np.float32),
+            sample_rate=22050,
+            group="piano",
         )
         for index in range(count)
     ]

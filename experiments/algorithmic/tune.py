@@ -48,13 +48,9 @@ from experiments.common.tracking import (
     start_run,
 )
 from scribr.algorithmic import AlgorithmicConfig, AlgorithmicTranscriber
-from scribr.representation import (
-    DATASET_MAX_PITCH,
-    DATASET_MIN_PITCH,
-    Melody,
-)
+from scribr.representation import DATASET_MAX_PITCH, DATASET_MIN_PITCH
 
-from .evaluate import load_recordings, score_recordings
+from .evaluate import Recording, load_recordings, score_recordings
 
 _DIR = Path(__file__).resolve().parent
 _ARTIFACTS_DIR = _DIR / "artifacts"
@@ -73,8 +69,6 @@ MAX_GAP_SECONDS_RANGE = (0.0, 0.08)
 ONSET_MERGE_SECONDS_RANGE = (0.0, 0.10)
 ATTACK_REJECT_RATIO_RANGE = (0.0, 1.0)
 ATTACK_BACKTRACK_SECONDS_RANGE = (0.0, 0.10)
-
-Recording = tuple[str, Melody, np.ndarray, int, str]
 
 
 @dataclass(frozen=True, slots=True)

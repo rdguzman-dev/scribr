@@ -22,26 +22,21 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 from experiments.common.markdown import display, format_score, markdown_table
 from experiments.common.materialize import Manifest, materialize
 from experiments.common.report import git_commit
 from experiments.common.scoring import ExperimentEvaluation
 from experiments.common.spec import ExperimentSpec
 from scribr.algorithmic import AlgorithmicConfig, AlgorithmicTranscriber
-from scribr.representation import Melody
 from scribr.transcription import Transcriber
 
-from .evaluate import load_recordings, score_recordings
+from .evaluate import Recording, load_recordings, score_recordings
 
 _DIR = Path(__file__).resolve().parent
 _ARTIFACTS_DIR = _DIR / "artifacts"
 
 PRIMARY_METRIC = "F-measure_no_offset"
 SECONDARY_METRIC = "F-measure"
-
-Recording = tuple[str, Melody, np.ndarray, int, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,7 +112,7 @@ def run_ablation(
     """Run both quantization arms on the same recordings.
 
     Args:
-        recordings: `(id, reference, audio, sample_rate, group)` items.
+        recordings: Recordings to score. Both arms share them.
         tempo: Tempo in BPM shared by the recordings.
         parameters: Base config. Defaults to `AlgorithmicConfig()`. Only
             `quantize` differs between arms.
