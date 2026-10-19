@@ -4,8 +4,8 @@ import argparse
 import hashlib
 import json
 import wave
-from collections.abc import Iterable
-from dataclasses import asdict
+from collections.abc import Iterable, Iterator
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import librosa
@@ -27,6 +27,25 @@ _DIR = Path(__file__).resolve().parent
 _ARTIFACTS_DIR = _DIR / "artifacts"
 
 
+@dataclass(frozen=True, slots=True, eq=False)
+class Recording:
+    """One materialized example, decoded and ready to transcribe.
+
+    Attributes:
+        example_id: Stable manifest ID, `<sample index>-<instrument>`.
+        reference: Reference melody read from the note table.
+        audio: Mono `float32` samples in `[-1, 1]`.
+        sample_rate: Analysis sample rate from the WAV header.
+        group: Group used for grouped metrics, currently the instrument.
+    """
+
+    example_id: str
+    reference: Melody
+    audio: np.ndarray
+    sample_rate: int
+    group: str
+
+
 def _read_verified(path: Path, expected_hash: str) -> bytes:
     data = path.read_bytes()
 
@@ -36,8 +55,10 @@ def _read_verified(path: Path, expected_hash: str) -> bytes:
     return data
 
 
-def load_recordings(manifest: Manifest, artifacts_dir: Path):
-    """Yield `(id, reference, audio, sample_rate, group)` per example.
+def load_recordings(
+    manifest: Manifest, artifacts_dir: Path
+) -> Iterator[Recording]:
+    """Yield one decoded `Recording` per manifest example.
 
     WAV and reference files are verified against the manifest hashes
     before being decoded.
@@ -75,17 +96,17 @@ def load_recordings(manifest: Manifest, artifacts_dir: Path):
             ).decode("utf-8")
         )
 
-        yield (
-            example.id,
-            reference,
-            audio,
-            sample_rate,
-            example.instrument.value,
+        yield Recording(
+            example_id=example.id,
+            reference=reference,
+            audio=audio,
+            sample_rate=sample_rate,
+            group=example.instrument.value,
         )
 
 
 def score_recordings(
-    recordings: Iterable[tuple[str, Melody, np.ndarray, int, str]],
+    recordings: Iterable[Recording],
     transcriber: Transcriber,
     tempo: float,
     *,
@@ -94,7 +115,7 @@ def score_recordings(
     """Transcribe and score recordings, returning scores and estimates.
 
     Args:
-        recordings: `(id, reference, audio, sample_rate, group)` items.
+        recordings: Decoded recordings to score.
         transcriber: Approach to run on each recording.
         tempo: Tempo in BPM used to convert beats to seconds.
         verbose: Print one line per transcribed example.
@@ -105,17 +126,25 @@ def score_recordings(
     estimates: dict[str, Melody] = {}
 
     def items():
-        for example_id, reference, audio, sample_rate, group in recordings:
-            estimate = transcriber.transcribe(audio, sample_rate, tempo)
-            estimates[example_id] = estimate
+        for recording in recordings:
+            estimate = transcriber.transcribe(
+                recording.audio, recording.sample_rate, tempo
+            )
+            estimates[recording.example_id] = estimate
 
             if verbose:
                 print(
-                    f"Transcribed {example_id}: {len(estimate)} note(s)",
+                    f"Transcribed {recording.example_id}: "
+                    f"{len(estimate)} note(s)",
                     flush=True,
                 )
 
-            yield example_id, reference, estimate, group
+            yield (
+                recording.example_id,
+                recording.reference,
+                estimate,
+                recording.group,
+            )
 
     return evaluate_predictions(items(), tempo=tempo), estimates
 

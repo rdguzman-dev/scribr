@@ -52,15 +52,14 @@ def test_manifest_audio_is_verified_and_decoded(tmp_path):
     manifest = Manifest.load(path)
     items = list(experiment.load_recordings(manifest, path.parent))
     assert len(items) == 1
-    example_id, loaded, audio, sample_rate, instrument = items[0]
-    assert (example_id, loaded, sample_rate, instrument) == (
+    (recording,) = items
+    assert (recording.example_id, recording.reference) == (
         "000-piano",
         reference,
-        22050,
-        "piano",
     )
-    assert audio.dtype == np.float32
-    assert audio.shape == (22050,)
+    assert (recording.sample_rate, recording.group) == (22050, "piano")
+    assert recording.audio.dtype == np.float32
+    assert recording.audio.shape == (22050,)
     (tmp_path / "reference.txt").write_text("C4, 0, 1\n")
     with pytest.raises(ValueError, match="hash mismatch"):
         list(experiment.load_recordings(manifest, path.parent))
@@ -235,12 +234,12 @@ class _QuantizeAwareTranscriber:
 
 def _ablation_result():
     recordings = [
-        (
-            "000-piano",
-            Melody((Note(69, 0, 1),)),
-            np.zeros(1, dtype=np.float32),
-            22050,
-            "piano",
+        experiment.Recording(
+            example_id="000-piano",
+            reference=Melody((Note(69, 0, 1),)),
+            audio=np.zeros(1, dtype=np.float32),
+            sample_rate=22050,
+            group="piano",
         )
     ]
 
