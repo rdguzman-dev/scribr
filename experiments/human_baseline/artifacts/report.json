@@ -1,0 +1,559 @@
+{
+  "experiment": "human_baseline",
+  "soundfont_sha256": "9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe",
+  "metadata": {
+    "git_commit": "6185489c7f4d3516e3a33ebcb8b41e8733e95b80",
+    "python_version": "3.13.11",
+    "package_versions": {
+      "scribr": "0.1.0",
+      "mir_eval": "0.8.2"
+    },
+    "soundfont_path": null,
+    "tempo": 120.0,
+    "metric_options": {
+      "onset_tolerance": 0.05,
+      "pitch_tolerance": 50.0,
+      "offset_ratio": 0.2,
+      "offset_min_tolerance": 0.05
+    },
+    "num_examples": 20
+  },
+  "overall": {
+    "Precision": 0.916626382876383,
+    "Recall": 0.9139443905392183,
+    "F-measure": 0.9152374939874941,
+    "Average_Overlap_Ratio": 0.9986521811521811,
+    "Precision_no_offset": 0.9491804954304955,
+    "Recall_no_offset": 0.9464985030933308,
+    "F-measure_no_offset": 0.9477916065416065,
+    "Average_Overlap_Ratio_no_offset": 0.9828069153069153,
+    "Onset_Precision": 0.9888888888888889,
+    "Onset_Recall": 0.9862068965517242,
+    "Onset_F-measure": 0.9875,
+    "Offset_Precision": 0.9618903318903318,
+    "Offset_Recall": 0.9588251977907148,
+    "Offset_F-measure": 0.9603030303030302
+  },
+  "per_instrument": {
+    "piano": {
+      "num_examples": 5,
+      "metrics": {
+        "Precision": 0.9851851851851852,
+        "Recall": 0.9851851851851852,
+        "F-measure": 0.9851851851851852,
+        "Average_Overlap_Ratio": 0.9985714285714286,
+        "Precision_no_offset": 0.9851851851851852,
+        "Recall_no_offset": 0.9851851851851852,
+        "F-measure_no_offset": 0.9851851851851852,
+        "Average_Overlap_Ratio_no_offset": 0.9985714285714286,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    "acoustic_guitar": {
+      "num_examples": 5,
+      "metrics": {
+        "Precision": 0.8421645021645021,
+        "Recall": 0.8421645021645021,
+        "F-measure": 0.8421645021645021,
+        "Average_Overlap_Ratio": 0.9960372960372961,
+        "Precision_no_offset": 0.9723809523809525,
+        "Recall_no_offset": 0.9723809523809525,
+        "F-measure_no_offset": 0.9723809523809525,
+        "Average_Overlap_Ratio_no_offset": 0.9326562326562329,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 0.8697835497835499,
+        "Offset_Recall": 0.8697835497835499,
+        "Offset_F-measure": 0.8697835497835499
+      }
+    },
+    "electric_guitar": {
+      "num_examples": 5,
+      "metrics": {
+        "Precision": 0.935873015873016,
+        "Recall": 0.935873015873016,
+        "F-measure": 0.935873015873016,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.935873015873016,
+        "Recall_no_offset": 0.935873015873016,
+        "F-measure_no_offset": 0.935873015873016,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    "violin": {
+      "num_examples": 5,
+      "metrics": {
+        "Precision": 0.9032828282828284,
+        "Recall": 0.8925548589341693,
+        "F-measure": 0.8977272727272727,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.9032828282828284,
+        "Recall_no_offset": 0.8925548589341693,
+        "F-measure_no_offset": 0.8977272727272727,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 0.9555555555555555,
+        "Onset_Recall": 0.9448275862068964,
+        "Onset_F-measure": 0.95,
+        "Offset_Precision": 0.9777777777777779,
+        "Offset_Recall": 0.9655172413793103,
+        "Offset_F-measure": 0.9714285714285715
+      }
+    }
+  },
+  "examples": [
+    {
+      "id": "000-piano",
+      "instrument": "piano",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F-measure": 1.0,
+        "Average_Overlap_Ratio": 0.9928571428571429,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 0.9928571428571429,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "001-acoustic_guitar",
+      "instrument": "acoustic_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.47619047619047616,
+        "Recall": 0.47619047619047616,
+        "F-measure": 0.47619047619047616,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 0.7380952380952381,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 0.47619047619047616,
+        "Offset_Recall": 0.47619047619047616,
+        "Offset_F-measure": 0.47619047619047616
+      }
+    },
+    {
+      "id": "002-electric_guitar",
+      "instrument": "electric_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.8888888888888888,
+        "Recall": 0.8888888888888888,
+        "F-measure": 0.8888888888888888,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.8888888888888888,
+        "Recall_no_offset": 0.8888888888888888,
+        "F-measure_no_offset": 0.8888888888888888,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "003-violin",
+      "instrument": "violin",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.984375,
+        "Recall": 0.984375,
+        "F-measure": 0.984375,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.984375,
+        "Recall_no_offset": 0.984375,
+        "F-measure_no_offset": 0.984375,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "004-piano",
+      "instrument": "piano",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F-measure": 1.0,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "005-acoustic_guitar",
+      "instrument": "acoustic_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.8666666666666667,
+        "Recall": 0.8666666666666667,
+        "F-measure": 0.8666666666666667,
+        "Average_Overlap_Ratio": 0.9871794871794872,
+        "Precision_no_offset": 0.9333333333333333,
+        "Recall_no_offset": 0.9333333333333333,
+        "F-measure_no_offset": 0.9333333333333333,
+        "Average_Overlap_Ratio_no_offset": 0.9523809523809524,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 0.9333333333333333,
+        "Offset_Recall": 0.9333333333333333,
+        "Offset_F-measure": 0.9333333333333333
+      }
+    },
+    {
+      "id": "006-electric_guitar",
+      "instrument": "electric_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.9285714285714286,
+        "Recall": 0.9285714285714286,
+        "F-measure": 0.9285714285714286,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.9285714285714286,
+        "Recall_no_offset": 0.9285714285714286,
+        "F-measure_no_offset": 0.9285714285714286,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "007-violin",
+      "instrument": "violin",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.8636363636363636,
+        "Recall": 0.8636363636363636,
+        "F-measure": 0.8636363636363636,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.8636363636363636,
+        "Recall_no_offset": 0.8636363636363636,
+        "F-measure_no_offset": 0.8636363636363636,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "008-piano",
+      "instrument": "piano",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F-measure": 1.0,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "009-acoustic_guitar",
+      "instrument": "acoustic_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F-measure": 1.0,
+        "Average_Overlap_Ratio": 0.9930069930069931,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 0.9930069930069931,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "010-electric_guitar",
+      "instrument": "electric_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.9285714285714286,
+        "Recall": 0.9285714285714286,
+        "F-measure": 0.9285714285714286,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.9285714285714286,
+        "Recall_no_offset": 0.9285714285714286,
+        "F-measure_no_offset": 0.9285714285714286,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "011-violin",
+      "instrument": "violin",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.7777777777777778,
+        "Recall": 0.7241379310344828,
+        "F-measure": 0.75,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.7777777777777778,
+        "Recall_no_offset": 0.7241379310344828,
+        "F-measure_no_offset": 0.75,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 0.7777777777777778,
+        "Onset_Recall": 0.7241379310344828,
+        "Onset_F-measure": 0.75,
+        "Offset_Precision": 0.8888888888888888,
+        "Offset_Recall": 0.8275862068965517,
+        "Offset_F-measure": 0.8571428571428572
+      }
+    },
+    {
+      "id": "012-piano",
+      "instrument": "piano",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F-measure": 1.0,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "013-acoustic_guitar",
+      "instrument": "acoustic_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.9285714285714286,
+        "Recall": 0.9285714285714286,
+        "F-measure": 0.9285714285714286,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.9285714285714286,
+        "Recall_no_offset": 0.9285714285714286,
+        "F-measure_no_offset": 0.9285714285714286,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "014-electric_guitar",
+      "instrument": "electric_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F-measure": 1.0,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "015-violin",
+      "instrument": "violin",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.890625,
+        "Recall": 0.890625,
+        "F-measure": 0.890625,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.890625,
+        "Recall_no_offset": 0.890625,
+        "F-measure_no_offset": 0.890625,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "016-piano",
+      "instrument": "piano",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.9259259259259259,
+        "Recall": 0.9259259259259259,
+        "F-measure": 0.9259259259259259,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.9259259259259259,
+        "Recall_no_offset": 0.9259259259259259,
+        "F-measure_no_offset": 0.9259259259259259,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "017-acoustic_guitar",
+      "instrument": "acoustic_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.9393939393939394,
+        "Recall": 0.9393939393939394,
+        "F-measure": 0.9393939393939394,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 0.9797979797979797,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 0.9393939393939394,
+        "Offset_Recall": 0.9393939393939394,
+        "Offset_F-measure": 0.9393939393939394
+      }
+    },
+    {
+      "id": "018-electric_guitar",
+      "instrument": "electric_guitar",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 0.9333333333333333,
+        "Recall": 0.9333333333333333,
+        "F-measure": 0.9333333333333333,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 0.9333333333333333,
+        "Recall_no_offset": 0.9333333333333333,
+        "F-measure_no_offset": 0.9333333333333333,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    },
+    {
+      "id": "019-violin",
+      "instrument": "violin",
+      "off_grid_onsets": 0,
+      "off_grid_offsets": 0,
+      "metrics": {
+        "Precision": 1.0,
+        "Recall": 1.0,
+        "F-measure": 1.0,
+        "Average_Overlap_Ratio": 1.0,
+        "Precision_no_offset": 1.0,
+        "Recall_no_offset": 1.0,
+        "F-measure_no_offset": 1.0,
+        "Average_Overlap_Ratio_no_offset": 1.0,
+        "Onset_Precision": 1.0,
+        "Onset_Recall": 1.0,
+        "Onset_F-measure": 1.0,
+        "Offset_Precision": 1.0,
+        "Offset_Recall": 1.0,
+        "Offset_F-measure": 1.0
+      }
+    }
+  ],
+  "missing": [],
+  "parse_errors": []
+}
