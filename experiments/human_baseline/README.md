@@ -11,14 +11,15 @@ Materialization needs a General MIDI SoundFont. Point `SCRIBR_SOUNDFONT` at
 one first:
 
 ```bash
-export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
+export SCRIBR_SOUNDFONT=GeneralUser-GS.sf2
 uv run python -m experiments.human_baseline.materialize
 ```
 
 `--soundfont PATH` overrides the environment variable.
 
 The command takes the first 20 examples from the test split and assigns the
-four instruments round robin, 5 examples each. It writes:
+four instruments (piano, acoustic guitar, electric guitar, and violin) round
+robin, 5 examples each. It writes:
 
 ```text
 artifacts/
@@ -30,8 +31,9 @@ artifacts/
 Running it again reuses the existing manifest; `--force` rebuilds
 everything. The manifest records the config, the selected indices, and
 file hashes. It holds no timestamps or filesystem paths, so the same
-inputs always produce the same files. The WAV directory is gitignored; the
-references, manifest, and transcriptions are committed.
+inputs always produce the same files. The WAV directory is gitignored. The
+references, manifest, transcriptions, and the completed run's reports are
+committed.
 
 ## Transcribe
 
@@ -58,26 +60,12 @@ scientific notation (`C4` is MIDI 60), and sharps and flats both parse. Onset
 and offset are quarter-note beats from the start of the WAV. The header row is
 optional. Times do not have to be aligned to the 0.25-beat grid. Scoring uses
 the times exactly as written and reports how many rows fall off the grid.
+Whitespace is ignored.
 
-### Middle C conventions
-
-MIDI fixes the note number, not the octave label, so tools disagree about
-what to call middle C (MIDI 60).
-
-| Convention | Middle C (MIDI 60) | Used by |
-| --- | --- | --- |
-| Scientific pitch notation | `C4` | Scribr's note tables, MuseScore |
-| Middle C is `C3` | `C3` | GarageBand, Logic Pro, Cubase, Ableton Live |
-| Middle C is `C5` | `C5` | FL Studio |
-
-The baseline transcriptions were recorded in GarageBand, which labels middle
-C as `C3`. Read literally, every pitch is one octave below the reference, so
-the scoring pipeline shifts parsed notes up 12 semitones before matching. The
-files in `transcriptions/` keep the names as written in GarageBand; the shift
-happens at scoring time in `evaluate.py`.
-
-If a future transcription session uses a different convention, change
-`_TRANSPOSITION_SEMITONES` in `evaluate.py` to match.
+The transcriptions were done with GarageBand, which labels middle C as
+`C3`. The committed files use scientific pitch notation to match Scribr's
+note tables, so they are one octave above the labels GarageBand displayed.
+Scoring uses the pitches as written; no octave shift is applied.
 
 ### Transcription setup
 
@@ -150,3 +138,36 @@ metadata. `F-measure_no_offset` is the headline metric because instrument
 release tails make offset-aware scores noisy. To score an incomplete set
 anyway, pass `--partial`; the report then lists the missing and unparseable
 files instead of failing.
+
+## Results
+
+The 20 transcriptions score as follows. The run used the default tolerances,
+the manifest's 120 BPM tempo, and `GeneralUser-GS.sf2` at the repository root.
+The SoundFont SHA-256 is
+`9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe`.
+
+| Metric | Score |
+| --- | --- |
+| `F-measure_no_offset` | 0.9478 |
+| `Precision_no_offset` | 0.9492 |
+| `Recall_no_offset` | 0.9465 |
+| `Onset_F-measure` | 0.9875 |
+| `F-measure` | 0.9152 |
+| `Offset_F-measure` | 0.9603 |
+
+| Instrument | N | `F-measure_no_offset` | `F-measure` |
+| --- | --- | --- | --- |
+| piano | 5 | 0.9852 | 0.9852 |
+| acoustic guitar | 5 | 0.9724 | 0.8422 |
+| electric guitar | 5 | 0.9359 | 0.9359 |
+| violin | 5 | 0.8977 | 0.8977 |
+| All | 20 | 0.9478 | 0.9152 |
+
+The violin mean is the lowest. `011-violin` scores 0.7500 because it misses
+two `D#6` notes and places several onsets a quarter beat late. The file was
+scored as written, so those errors are part of the baseline.
+
+No transcribed onset or offset fell off the 0.25-beat grid. The 20
+transcriptions took 6.8 hours in total, or 20.3 minutes per example on
+average. The generated `artifacts/report.md` has the full per-example
+breakdown.

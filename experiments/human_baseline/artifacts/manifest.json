@@ -1,0 +1,247 @@
+{
+  "schema_version": 3,
+  "experiment": "human_baseline",
+  "soundfont_sha256": "9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe",
+  "config": {
+    "experiment": "human_baseline",
+    "dataset": {
+      "split": "test",
+      "sample_size": 20
+    },
+    "instruments": [
+      "piano",
+      "acoustic_guitar",
+      "electric_guitar",
+      "violin"
+    ],
+    "synthesis": {
+      "sample_rate": 22050,
+      "tempo": 120.0,
+      "velocity": 80,
+      "gain": 1.0,
+      "release_tail_seconds": 0.5
+    }
+  },
+  "examples": [
+    {
+      "id": "000-piano",
+      "index": 0,
+      "instrument": "piano",
+      "program": 0,
+      "wav": "wav/000-piano.wav",
+      "reference": "reference/000-piano.txt",
+      "wav_sha256": "32aa47f43802b6561d01022b71a8637e77b31ec81c856aebc6da10a870cbe0f5",
+      "reference_sha256": "20a6de9ac09b86f55bb831bb00f957c671088824d7a0f781af95acec223986bc",
+      "num_notes": 14
+    },
+    {
+      "id": "001-acoustic_guitar",
+      "index": 1,
+      "instrument": "acoustic_guitar",
+      "program": 25,
+      "wav": "wav/001-acoustic_guitar.wav",
+      "reference": "reference/001-acoustic_guitar.txt",
+      "wav_sha256": "d74716def77f0f58eded012ffdd424650a7c2ac9c2f6254251aa575f8fe7c940",
+      "reference_sha256": "6b613c3ea9faf1ef31cdf41624b94a1a7b8a5b1be86e39ec707b3b89a0b4719a",
+      "num_notes": 21
+    },
+    {
+      "id": "002-electric_guitar",
+      "index": 2,
+      "instrument": "electric_guitar",
+      "program": 27,
+      "wav": "wav/002-electric_guitar.wav",
+      "reference": "reference/002-electric_guitar.txt",
+      "wav_sha256": "daf2ba66a7c7e4ea6052a632e19b61a0e8b5affd10af220a90774408112dea5d",
+      "reference_sha256": "46b33548cf327d58e4cfc27ee1c1a9cf877be9ca0c13f771bdff9ff805ab63ac",
+      "num_notes": 27
+    },
+    {
+      "id": "003-violin",
+      "index": 3,
+      "instrument": "violin",
+      "program": 40,
+      "wav": "wav/003-violin.wav",
+      "reference": "reference/003-violin.txt",
+      "wav_sha256": "3e1607a3dc1459108fcbda6b2007610eee51a518385b9680e9ba830439e3453b",
+      "reference_sha256": "2389aad6e8081dd242f8ba4c2f9496a7f4eadb578c23028d87d54c0c5b298372",
+      "num_notes": 64
+    },
+    {
+      "id": "004-piano",
+      "index": 4,
+      "instrument": "piano",
+      "program": 0,
+      "wav": "wav/004-piano.wav",
+      "reference": "reference/004-piano.txt",
+      "wav_sha256": "8c4e9126acb220854e0a8b110b2ea25af569bcc06a11dfff7379e496be44f926",
+      "reference_sha256": "d8b387f1abc9a8b64b2e758a119f92f7b2be6a58f24b5a3b660d23d60c354151",
+      "num_notes": 18
+    },
+    {
+      "id": "005-acoustic_guitar",
+      "index": 5,
+      "instrument": "acoustic_guitar",
+      "program": 25,
+      "wav": "wav/005-acoustic_guitar.wav",
+      "reference": "reference/005-acoustic_guitar.txt",
+      "wav_sha256": "5f450e7c5f58fa943c0f23448534c73e0dbd7f608ab4ccc7155f47df43d9e9f8",
+      "reference_sha256": "6a4dc529dc787a0837bfe16968e671ed87bc680cb08841c9c759588e7c632226",
+      "num_notes": 15
+    },
+    {
+      "id": "006-electric_guitar",
+      "index": 6,
+      "instrument": "electric_guitar",
+      "program": 27,
+      "wav": "wav/006-electric_guitar.wav",
+      "reference": "reference/006-electric_guitar.txt",
+      "wav_sha256": "aa127108e7bc77c26c74f9db8dfc34dc758ed2e518f023b219a391b1b13bc8e1",
+      "reference_sha256": "9555270605d1d4fca96d401a5886745b18f0a6a9e7dd6d1779e153dead606779",
+      "num_notes": 14
+    },
+    {
+      "id": "007-violin",
+      "index": 7,
+      "instrument": "violin",
+      "program": 40,
+      "wav": "wav/007-violin.wav",
+      "reference": "reference/007-violin.txt",
+      "wav_sha256": "fdf380f5d1b25ec109f8ee891f39de7852a63a085114df9f409eb08f9269e565",
+      "reference_sha256": "5a5496147a696e89aa6b37a7418498a3993271f0fe51f6f3865b4ad1e1e95f4a",
+      "num_notes": 22
+    },
+    {
+      "id": "008-piano",
+      "index": 8,
+      "instrument": "piano",
+      "program": 0,
+      "wav": "wav/008-piano.wav",
+      "reference": "reference/008-piano.txt",
+      "wav_sha256": "6c05061671e10e0b68f2170e63d5ccab4c4f1b93556f643618d778b0a6b4a909",
+      "reference_sha256": "e81c0517559dea038102598a6e289df9561be5af97e52e11b97a11e72bca18b0",
+      "num_notes": 32
+    },
+    {
+      "id": "009-acoustic_guitar",
+      "index": 9,
+      "instrument": "acoustic_guitar",
+      "program": 25,
+      "wav": "wav/009-acoustic_guitar.wav",
+      "reference": "reference/009-acoustic_guitar.txt",
+      "wav_sha256": "1335a43840e23684777051d17d7ac06d65314f147a1bd856842b36ed18fa9637",
+      "reference_sha256": "6c0a85bd3422620150ff35d5e9ed251f8ff21af62ca1dd50ffd66d25929f84ba",
+      "num_notes": 13
+    },
+    {
+      "id": "010-electric_guitar",
+      "index": 10,
+      "instrument": "electric_guitar",
+      "program": 27,
+      "wav": "wav/010-electric_guitar.wav",
+      "reference": "reference/010-electric_guitar.txt",
+      "wav_sha256": "bcf8707edfc044fabfcd859a3ec7d523730db77fae5ee1f758b78360cc00c261",
+      "reference_sha256": "85fc73950b1c755d2441475f9347c5dfaf9de24931e8b95f6c5dfff148060f46",
+      "num_notes": 28
+    },
+    {
+      "id": "011-violin",
+      "index": 11,
+      "instrument": "violin",
+      "program": 40,
+      "wav": "wav/011-violin.wav",
+      "reference": "reference/011-violin.txt",
+      "wav_sha256": "a7e0fa1ddd0b0d5795d40a6536722b01bfa8190144b49282cb41676c4de4aa86",
+      "reference_sha256": "9ffedf821cb1bb10a7426451bb913aeceac6f83e72851dda0ac47215ed945c97",
+      "num_notes": 29
+    },
+    {
+      "id": "012-piano",
+      "index": 12,
+      "instrument": "piano",
+      "program": 0,
+      "wav": "wav/012-piano.wav",
+      "reference": "reference/012-piano.txt",
+      "wav_sha256": "0d78e56971defb5b9ffc8fa78a65f45fa6af839b450d0de04210f91dde051ec9",
+      "reference_sha256": "66775dad497063d5a2c98b14e9b2b778158fc89ea572571458ce08141a426301",
+      "num_notes": 19
+    },
+    {
+      "id": "013-acoustic_guitar",
+      "index": 13,
+      "instrument": "acoustic_guitar",
+      "program": 25,
+      "wav": "wav/013-acoustic_guitar.wav",
+      "reference": "reference/013-acoustic_guitar.txt",
+      "wav_sha256": "56d60775b606839b6ac3e469f2ee6e6682e59ad13b4b977b587a4c10642e28ba",
+      "reference_sha256": "2d8512b7d7ce875514c0a43e4283f25660dc15b076e81e04f9664a57a6eb515c",
+      "num_notes": 28
+    },
+    {
+      "id": "014-electric_guitar",
+      "index": 14,
+      "instrument": "electric_guitar",
+      "program": 27,
+      "wav": "wav/014-electric_guitar.wav",
+      "reference": "reference/014-electric_guitar.txt",
+      "wav_sha256": "e1cb22788e9416642582fe529eddda7a631c35848b92ddb6fad9c5088677a93c",
+      "reference_sha256": "651470d4b31d4e1cddcf19954152b0892404e906a0adbf15284a3dfe345c59b5",
+      "num_notes": 23
+    },
+    {
+      "id": "015-violin",
+      "index": 15,
+      "instrument": "violin",
+      "program": 40,
+      "wav": "wav/015-violin.wav",
+      "reference": "reference/015-violin.txt",
+      "wav_sha256": "b94d37d6c6120bea89ee422f372fc6c9af49308c6d07df0e28cc72afca5be81d",
+      "reference_sha256": "cce0494af972339b12dc2949820985f1c418779169d7440c4eff44ade4d04608",
+      "num_notes": 64
+    },
+    {
+      "id": "016-piano",
+      "index": 16,
+      "instrument": "piano",
+      "program": 0,
+      "wav": "wav/016-piano.wav",
+      "reference": "reference/016-piano.txt",
+      "wav_sha256": "d922676c79e22633b7329579733aa868c3ab1668d473925b906cabd12a7dfccb",
+      "reference_sha256": "5a47c745aec92f778c0649f9ca9ba3975dea5d9bd556b683405a466106b07b47",
+      "num_notes": 27
+    },
+    {
+      "id": "017-acoustic_guitar",
+      "index": 17,
+      "instrument": "acoustic_guitar",
+      "program": 25,
+      "wav": "wav/017-acoustic_guitar.wav",
+      "reference": "reference/017-acoustic_guitar.txt",
+      "wav_sha256": "772b001550d99fee733ce536a526d5a24b1628a55f9758d8e20e7035ab3bd09d",
+      "reference_sha256": "95fca6a422c8efa25a0f6219148b07858a11a6ce40d40621e4e88b62c4cc4355",
+      "num_notes": 33
+    },
+    {
+      "id": "018-electric_guitar",
+      "index": 18,
+      "instrument": "electric_guitar",
+      "program": 27,
+      "wav": "wav/018-electric_guitar.wav",
+      "reference": "reference/018-electric_guitar.txt",
+      "wav_sha256": "75d500a3a37145a07e3a2ff73476ffa0285d8f3b1dfe7e7a4cf9963cf68b01c2",
+      "reference_sha256": "bff821dedbfe19b7893bf78cf752cc87b871957bde8731a6fd5335feab8cec0e",
+      "num_notes": 15
+    },
+    {
+      "id": "019-violin",
+      "index": 19,
+      "instrument": "violin",
+      "program": 40,
+      "wav": "wav/019-violin.wav",
+      "reference": "reference/019-violin.txt",
+      "wav_sha256": "af66f5ad8b3a1b124e4865c487f4af076cca02ea36ce42eaac708132ea899689",
+      "reference_sha256": "21e5a6cfbf5ff1a17424484c6033dfe7bdcc22e42bc6b9a8bfaf6341a59dbba8",
+      "num_notes": 64
+    }
+  ]
+}
