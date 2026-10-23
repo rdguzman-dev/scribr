@@ -142,9 +142,7 @@ files instead of failing.
 ## Results
 
 The 20 transcriptions score as follows. The run used the default tolerances,
-the manifest's 120 BPM tempo, and `GeneralUser-GS.sf2` at the repository root.
-The SoundFont SHA-256 is
-`9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe`.
+the manifest's 120 BPM tempo, and the `GeneralUser-GS.sf2` SoundFont.
 
 | Metric | Score |
 | --- | --- |
@@ -162,12 +160,3 @@ The SoundFont SHA-256 is
 | electric guitar | 5 | 0.9359 | 0.9359 |
 | violin | 5 | 0.8977 | 0.8977 |
 | All | 20 | 0.9478 | 0.9152 |
-
-The violin mean is the lowest. `011-violin` scores 0.7500 because it misses
-two `D#6` notes and places several onsets a quarter beat late. The file was
-scored as written, so those errors are part of the baseline.
-
-No transcribed onset or offset fell off the 0.25-beat grid. The 20
-transcriptions took 6.8 hours in total, or 20.3 minutes per example on
-average. The generated `artifacts/report.md` has the full per-example
-breakdown.
