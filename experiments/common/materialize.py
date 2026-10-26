@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import islice
@@ -22,13 +23,13 @@ from scribr.representation import MelodyExample, melody_to_text
 from scribr.synthesis import Instrument, Synthesizer
 from scribr.wav import write_wav
 
-from .spec import ExperimentSpec
+from .spec import DatasetSpec, ExperimentSpec
 from .synthesis import SynthesizerFactory, resolve_soundfont_path
 
-# Version 2 selected the leading candidates instead of a seeded random
-# draw and dropped `seed` from the dataset config. Version 3 selects the
-# first `sample_size` records of the split and drops `prefix_size`.
-SCHEMA_VERSION = 3
+# Version 4 records the dataset index of each example so IDs stay stable
+# when a seeded random sample is used. Version 3 selected the first
+# `sample_size` records and interpreted `index` as the selection order.
+SCHEMA_VERSION = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,8 +37,8 @@ class ManifestExample:
     """One materialized example.
 
     Attributes:
-        id: Stable example ID, `<sample index>-<instrument>`.
-        index: Position in the selection order.
+        id: Stable example ID, `<dataset index>-<instrument>`.
+        index: Index of the record in the dataset split.
         instrument: Instrument the example was rendered with.
         program: General MIDI program number of the instrument.
         wav: WAV path relative to the artifacts directory.
@@ -103,11 +104,17 @@ class Manifest:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Manifest:
-        """Build a manifest from its JSON-compatible mapping."""
-        if data["schema_version"] != SCHEMA_VERSION:
+        """Build a manifest from its JSON-compatible mapping.
+
+        Schema version 3 is accepted because its prefix and full-split
+        selections already used the dataset index as `index`. Only version
+        4 can describe a seeded random sample.
+        """
+        if data["schema_version"] not in (3, SCHEMA_VERSION):
             raise ValueError(
                 f"unsupported manifest schema_version "
-                f"{data['schema_version']!r}; expected {SCHEMA_VERSION}"
+                f"{data['schema_version']!r}; expected one of "
+                f"3, {SCHEMA_VERSION}"
             )
 
         return cls(
@@ -158,10 +165,12 @@ def materialize(
     advanced use cases.
 
     An existing manifest is reused when it matches `spec`; pass
-    `force=True` to rebuild the artifacts. Selection takes the first
-    `spec.dataset.sample_size` records of the split, or the entire split
-    when it is `None`, so identical inputs always produce identical
-    artifacts.
+    `force=True` to rebuild the artifacts. Selection uses the leading
+    `spec.dataset.sample_size` records when `seed` is `None`, or a
+    seeded random sample of the whole split when it is set. Round-robin
+    instrument assignment balances the sample across instruments. The
+    entire split is selected when `sample_size` is `None`, so identical
+    inputs always produce identical artifacts.
 
     Args:
         spec: Experiment configuration.
@@ -207,17 +216,7 @@ def materialize(
     if dataset is None:
         dataset = MelodyDataset(split=spec.dataset.split)
 
-    if spec.dataset.sample_size is None:
-        examples = list(dataset)
-    else:
-        examples = list(islice(dataset, spec.dataset.sample_size))
-
-        if len(examples) < spec.dataset.sample_size:
-            raise ValueError(
-                f"{spec.dataset.split!r} split contains only "
-                f"{len(examples)} example(s); "
-                f"sample_size is {spec.dataset.sample_size}"
-            )
+    selected = _select_examples(dataset, spec.dataset)
 
     if synthesizers is None:
         resolved_soundfont = resolve_soundfont_path(soundfont_path)
@@ -238,8 +237,8 @@ def materialize(
 
     manifest_examples: list[ManifestExample] = []
 
-    for index, example in enumerate(examples):
-        instrument = spec.instruments[index % len(spec.instruments)]
+    for position, (index, example) in enumerate(selected):
+        instrument = spec.instruments[position % len(spec.instruments)]
         example_id = f"{index:03d}-{instrument.value}"
 
         wav_path = wav_dir / f"{example_id}.wav"
@@ -274,6 +273,43 @@ def materialize(
     manifest.save(manifest_path)
 
     return manifest
+
+
+def _select_examples(
+    dataset: Iterable[MelodyExample],
+    spec: DatasetSpec,
+) -> list[tuple[int, MelodyExample]]:
+    """Return `(dataset index, example)` pairs in selection order.
+
+    A seeded draw samples uniformly from the whole split. Round-robin
+    instrument assignment then gives each instrument an equal, disjoint
+    random subset, so the materialized sample is stratified by
+    instrument. Without a seed, the leading records are selected to keep
+    tuning and validation prefixes nested.
+    """
+    if spec.sample_size is None:
+        return list(enumerate(dataset))
+
+    if spec.seed is None:
+        selected = list(islice(enumerate(dataset), spec.sample_size))
+    else:
+        candidates = list(enumerate(dataset))
+
+        if len(candidates) >= spec.sample_size:
+            indices = random.Random(spec.seed).sample(
+                range(len(candidates)), spec.sample_size
+            )
+            return [candidates[index] for index in indices]
+
+        selected = candidates
+
+    if len(selected) < spec.sample_size:
+        raise ValueError(
+            f"{spec.split!r} split contains only {len(selected)} "
+            f"example(s); sample_size is {spec.sample_size}"
+        )
+
+    return selected
 
 
 def _sha256_file(path: Path) -> str:

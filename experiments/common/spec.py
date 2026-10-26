@@ -24,12 +24,17 @@ class DatasetSpec:
 
     Attributes:
         split: Dataset split to draw from.
-        sample_size: Number of leading records to select, or `None` to
-            select the entire split.
+        sample_size: Number of records to select, or `None` to select the
+            entire split.
+        seed: Seed for a random draw. When set, `sample_size` records are
+            drawn uniformly from the whole split instead of taking the
+            leading records. When `None`, selection is a prefix, which
+            keeps nested tuning and validation sets reproducible.
     """
 
     split: str = "test"
     sample_size: int | None = 20
+    seed: int | None = None
 
     def __post_init__(self) -> None:
         if self.split not in SPLITS:
@@ -47,6 +52,7 @@ class DatasetSpec:
         return cls(
             split=data["split"],
             sample_size=data["sample_size"],
+            seed=data.get("seed"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,6 +60,7 @@ class DatasetSpec:
         return {
             "split": self.split,
             "sample_size": self.sample_size,
+            "seed": self.seed,
         }
 
 

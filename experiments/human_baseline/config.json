@@ -2,7 +2,8 @@
   "experiment": "human_baseline",
   "dataset": {
     "split": "test",
-    "sample_size": 20
+    "sample_size": 40,
+    "seed": 42
   },
   "instruments": [
     "piano",

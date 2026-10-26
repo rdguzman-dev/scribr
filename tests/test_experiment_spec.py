@@ -27,7 +27,7 @@ def test_committed_config_loads() -> None:
     spec = ExperimentSpec.load(CONFIG_PATH)
 
     assert spec.experiment == "human_baseline"
-    assert spec.dataset == DatasetSpec(split="test", sample_size=20)
+    assert spec.dataset == DatasetSpec(split="test", sample_size=40, seed=42)
     assert spec.instruments == (
         Instrument.PIANO,
         Instrument.ACOUSTIC_GUITAR,
@@ -48,6 +48,7 @@ def test_sample_size_none_selects_the_whole_split(tmp_path: Path) -> None:
 
     assert ExperimentSpec.load(path).dataset.sample_size is None
     assert json.loads(path.read_text())["dataset"]["sample_size"] is None
+    assert json.loads(path.read_text())["dataset"]["seed"] is None
 
 
 def test_json_round_trip(tmp_path: Path) -> None:
@@ -66,6 +67,7 @@ def test_json_round_trip(tmp_path: Path) -> None:
         "electric_guitar",
         "violin",
     ]
+    assert spec.to_dict()["dataset"]["seed"] == 42
 
 
 def test_dataset_validation_errors() -> None:

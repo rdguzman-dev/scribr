@@ -1,9 +1,10 @@
 # Human baseline
 
 This experiment measures how well a person can transcribe the 4 Bars
-Monophonic Melodies dataset by ear. It has two phases. Phase 1 materializes
-the first 20 test melodies as WAV files with reference note tables. Phase 2
-parses the hand-written note tables and scores them against the references.
+Monophonic Melodies dataset by ear. It has two phases. Phase 1 materializes a
+40-example human evaluation subset as WAV files with reference note tables.
+Phase 2 parses the hand-written note tables and scores them against the
+references.
 
 ## Materialize
 
@@ -17,9 +18,12 @@ uv run python -m experiments.human_baseline.materialize
 
 `--soundfont PATH` overrides the environment variable.
 
-The command takes the first 20 examples from the test split and assigns the
-four instruments (piano, acoustic guitar, electric guitar, and violin) round
-robin, 5 examples each. It writes:
+The command draws the 40-example subset with a seeded, stratified random
+sample. `config.json` sets `sample_size` to 40 and `seed` to 42. Selection
+covers the whole test split, and round-robin assignment of the four
+instruments (piano, acoustic guitar, electric guitar, and violin) gives 10
+examples per instrument. Example IDs use the dataset record index, for
+example `1041-piano`, not the position in the sample. It writes:
 
 ```text
 artifacts/
@@ -29,17 +33,17 @@ artifacts/
 ```
 
 Running it again reuses the existing manifest; `--force` rebuilds
-everything. The manifest records the config, the selected indices, and
-file hashes. It holds no timestamps or filesystem paths, so the same
+everything. The manifest records the config, the selected dataset indices,
+and file hashes. It holds no timestamps or filesystem paths, so the same
 inputs always produce the same files. The WAV directory is gitignored. The
 references, manifest, transcriptions, and the completed run's reports are
 committed.
 
 ## Transcribe
 
-Each file in `artifacts/wav/` was transcribed manually by listening to the
+Each file in `artifacts/wav/` is transcribed manually by listening to the
 audio and recording the notes heard in `transcriptions/<id>.txt`, using the ID
-from the manifest (for example, `000-piano.txt`).
+from the manifest (for example, `1041-piano.txt`).
 
 Each transcription uses one note per row in the following format:
 
@@ -62,47 +66,48 @@ optional. Times do not have to be aligned to the 0.25-beat grid. Scoring uses
 the times exactly as written and reports how many rows fall off the grid.
 Whitespace is ignored.
 
-The transcriptions were done with GarageBand, which labels middle C as
-`C3`. The committed files use scientific pitch notation to match Scribr's
-note tables, so they are one octave above the labels GarageBand displayed.
-Scoring uses the pitches as written; no octave shift is applied.
+Transcription uses GarageBand, which labels middle C as `C3`. The note
+tables use scientific pitch notation to match Scribr's note tables, so they
+are one octave above the labels GarageBand displays. Scoring uses the pitches
+as written; no octave shift is applied.
 
 ### Transcription setup
 
-The transcription was performed in GarageBand. A digital synthesizer capable of
-emulating piano, acoustic guitar, electric guitar, and violin was available as a
-reference instrument for identifying pitches by ear and using relative pitch.
+Transcription is performed in GarageBand. A digital synthesizer capable of
+emulating piano, acoustic guitar, electric guitar, and violin is available as
+a reference instrument for identifying pitches by ear and using relative
+pitch.
 
-Ordinary audio-inspection tools were permitted. The waveform could be
-zoomed, navigated, looped, and segmented into smaller regions to make
-difficult passages easier to hear. The timing ruler could also be used to
-estimate note onsets and offsets. These tools were used to inspect and
-navigate the audio, not to automatically extract musical information.
+Ordinary audio-inspection tools are permitted. The waveform can be zoomed,
+navigated, looped, and segmented into smaller regions to make difficult
+passages easier to hear. The timing ruler can also be used to estimate note
+onsets and offsets. These tools inspect and navigate the audio; they do not
+automatically extract musical information.
 
-Automatic transcription or note-extraction tools were not used. In particular,
-automatic pitch detection, onset or offset detection, MIDI transcription,
-and other tools that directly infer note identities or timings from the audio
-were prohibited.
+Automatic transcription or note-extraction tools are not permitted. In
+particular, automatic pitch detection, onset or offset detection, MIDI
+transcription, and other tools that directly infer note identities or timings
+from the audio are prohibited.
 
-The reference note tables in `artifacts/reference/` were not opened during
+The reference note tables in `artifacts/reference/` must not be opened during
 transcription. Those tables contain the ground truth, and reading them would
 defeat the experiment.
 
-The instrument release tail was ignored. A struck or bowed note may continue
-sounding after its notated offset, but a fading tail was not transcribed as a
+The instrument release tail is ignored. A struck or bowed note may continue
+sounding after its notated offset, but a fading tail is not transcribed as a
 new note. The transcription represents the attacks that are heard, not the
 decay.
 
 ### Timing log
 
-The time spent on each transcription was recorded in `timing.csv`, one row
+The time spent on each transcription is recorded in `timing.csv`, one row
 per example. The log is kept separate from the note tables in
 `transcriptions/`, and the scoring pipeline does not read it.
 
 Columns:
 
 * `id`: example ID exactly as it appears in `transcriptions/` and the
-  manifest (for example `000-piano`).
+  manifest (for example `1041-piano`).
 * `datetime`: date and time the transcription was started, in
   `YYYY-MM-DD HH:MM` format.
 * `duration_seconds`: how long the transcription took, recorded in seconds.
@@ -112,7 +117,7 @@ Columns:
 An example row:
 
 ```text
-001-acoustic_guitar,2026-09-28 18:00,2520
+1041-piano,2026-11-02 18:00,2520
 ```
 
 ## Score
@@ -126,7 +131,7 @@ uv run python -m experiments.human_baseline.evaluate --check
 `--check` prints the present, missing, and parse-error counts and exits 1 if
 anything is missing or unparseable. It does not score.
 
-Run the final evaluation when all 20 transcriptions exist:
+Run the final evaluation when all 40 transcriptions exist:
 
 ```bash
 uv run python -m experiments.human_baseline.evaluate
@@ -141,8 +146,17 @@ files instead of failing.
 
 ## Results
 
-The 20 transcriptions score as follows. The run used the default tolerances,
-the manifest's 120 BPM tempo, and the `GeneralUser-GS.sf2` SoundFont.
+The 40-example random subset has not been transcribed yet, so there is no
+current report. Run `--check` to see which note tables are outstanding.
+
+### Pilot results (superseded)
+
+The earlier 20-example prefix subset was replaced because its fixed prefix was
+denser and more melodic than the full test set. Its transcriptions, timing log,
+and report are kept under `pilot/` for reference. The pilot scores below are
+unweighted means over examples, so each melody counts equally regardless of
+note count. The run used the default tolerances, the pilot manifest's 120 BPM
+tempo, and the `GeneralUser-GS.sf2` SoundFont.
 
 | Metric | Score |
 | --- | --- |
