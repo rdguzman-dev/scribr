@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 import types
 from pathlib import Path
@@ -10,7 +11,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from experiments.common.materialize import materialize
+from experiments.common.materialize import (
+    SCHEMA_VERSION,
+    Manifest,
+    materialize,
+)
 from experiments.common.spec import DatasetSpec, ExperimentSpec, SynthesisSpec
 from scribr.data import MelodyDataset
 from scribr.representation import (
@@ -52,6 +57,7 @@ class ListDataset:
 def make_spec(
     *,
     sample_size: int | None = 2,
+    seed: int | None = None,
     instruments: tuple[Instrument, ...] = INSTRUMENTS,
 ) -> ExperimentSpec:
     return ExperimentSpec(
@@ -59,6 +65,7 @@ def make_spec(
         dataset=DatasetSpec(
             split="test",
             sample_size=sample_size,
+            seed=seed,
         ),
         instruments=instruments,
         synthesis=SynthesisSpec(),
@@ -168,9 +175,73 @@ def test_sample_size_none_selects_the_whole_split(tmp_path: Path) -> None:
     ]
 
 
+def test_seeded_selection_is_stratified_and_reproducible(
+    tmp_path: Path,
+) -> None:
+    dataset = ListDataset(make_examples(20))
+    spec = make_spec(sample_size=8, seed=42)
+
+    first = materialize(
+        spec,
+        tmp_path / "first",
+        dataset=dataset,
+        synthesizers=make_synthesizers(),
+    )
+    second = materialize(
+        spec,
+        tmp_path / "second",
+        dataset=dataset,
+        synthesizers=make_synthesizers(),
+    )
+
+    assert first == second
+    assert len(first.examples) == 8
+    assert len({example.index for example in first.examples}) == 8
+    assert [example.index for example in first.examples] != list(range(8))
+
+    for instrument in INSTRUMENTS:
+        assert sum(
+            example.instrument is instrument for example in first.examples
+        ) == 2
+
+    for example in first.examples:
+        assert example.id == f"{example.index:03d}-{example.instrument.value}"
+
+
+def test_schema_3_manifest_still_loads(tmp_path: Path) -> None:
+    manifest = materialize(
+        make_spec(),
+        tmp_path,
+        dataset=ListDataset(make_examples(2)),
+        synthesizers=make_synthesizers(),
+    )
+    data = manifest.to_dict()
+    data["schema_version"] = 3
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(data))
+
+    loaded = Manifest.load(path)
+
+    assert loaded.schema_version == SCHEMA_VERSION
+    assert loaded.examples == manifest.examples
+
+
 def test_too_few_examples_raises(tmp_path: Path) -> None:
     dataset = ListDataset(make_examples(2))
     spec = make_spec(sample_size=3)
+
+    with pytest.raises(ValueError, match="only 2 example"):
+        materialize(
+            spec,
+            tmp_path,
+            dataset=dataset,
+            synthesizers=make_synthesizers(),
+        )
+
+
+def test_seeded_selection_too_few_examples_raises(tmp_path: Path) -> None:
+    dataset = ListDataset(make_examples(2))
+    spec = make_spec(sample_size=3, seed=42)
 
     with pytest.raises(ValueError, match="only 2 example"):
         materialize(

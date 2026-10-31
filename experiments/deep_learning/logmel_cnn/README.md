@@ -146,9 +146,9 @@ from synthesized audio are noisy because instrument release tails should
 not be transcribed as notes. Only evaluate the test split with a frozen
 config.
 
-To compare against the human baseline directly, score the same 20 test
-melodies: split `test`, 20 examples (the baseline uses the first 20
-test records).
+The deep learning evaluator scores split prefixes, so it cannot select the
+human baseline's seeded random subset. Compare the two approaches on the
+full test split instead.
 
 ## Layout
 

@@ -205,7 +205,7 @@ def test_baseline_tuning_and_validation_configs_use_separate_splits():
     )
 
     assert baseline.dataset == DatasetSpec("test", None)
-    assert human.dataset == DatasetSpec("test", 20)
+    assert human.dataset == DatasetSpec("test", 40, 42)
     assert baseline.instruments == human.instruments
     assert baseline.synthesis == human.synthesis
 

@@ -173,9 +173,10 @@ is CPU-bound and parallel trials do not nest in MLflow.
 
 ## Compare against the human baseline
 
-The human baseline covers only the first 20 test melodies, not the full split.
-Score the algorithmic transcriber on the same examples with the exact WAV files
-and references recorded in Ricardo's manifest:
+The human baseline covers a 40-example seeded, stratified random sample of
+the test split, not the full split. Score the algorithmic transcriber on the
+same examples with the exact WAV files and references recorded in the
+manifest:
 
 ```bash
 uv run python -m experiments.algorithmic.evaluate \
