@@ -2,7 +2,9 @@
   "experiment": "algorithmic_pyin_validation",
   "dataset": {
     "split": "validation",
-    "sample_size": 2000
+    "sample_size": 2000,
+    "seed": 42,
+    "sampling": "reservoir"
   },
   "instruments": [
     "piano",

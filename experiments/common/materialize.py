@@ -289,7 +289,7 @@ def _select_examples(
     training split. Round-robin instrument assignment then gives each
     instrument an equal, disjoint random subset, so the materialized
     sample is stratified by instrument. Without a seed, the leading
-    records are selected to keep tuning and validation prefixes nested.
+    records are selected.
     """
     if spec.sample_size is None:
         return list(enumerate(dataset))
