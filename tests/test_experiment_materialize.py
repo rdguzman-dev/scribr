@@ -58,6 +58,7 @@ def make_spec(
     *,
     sample_size: int | None = 2,
     seed: int | None = None,
+    sampling: str | None = None,
     instruments: tuple[Instrument, ...] = INSTRUMENTS,
 ) -> ExperimentSpec:
     return ExperimentSpec(
@@ -66,6 +67,7 @@ def make_spec(
             split="test",
             sample_size=sample_size,
             seed=seed,
+            sampling=sampling,
         ),
         instruments=instruments,
         synthesis=SynthesisSpec(),
@@ -206,6 +208,52 @@ def test_seeded_selection_is_stratified_and_reproducible(
 
     for example in first.examples:
         assert example.id == f"{example.index:03d}-{example.instrument.value}"
+
+
+def test_reservoir_selection_is_stratified_and_reproducible(
+    tmp_path: Path,
+) -> None:
+    dataset = ListDataset(make_examples(20))
+    spec = make_spec(sample_size=8, seed=42, sampling="reservoir")
+
+    first = materialize(
+        spec,
+        tmp_path / "first",
+        dataset=dataset,
+        synthesizers=make_synthesizers(),
+    )
+    second = materialize(
+        spec,
+        tmp_path / "second",
+        dataset=dataset,
+        synthesizers=make_synthesizers(),
+    )
+
+    assert first == second
+    assert len(first.examples) == 8
+    assert len({example.index for example in first.examples}) == 8
+    assert {example.index for example in first.examples} != set(range(8))
+    assert max(example.index for example in first.examples) >= 8
+
+    for instrument in INSTRUMENTS:
+        assert sum(
+            example.instrument is instrument for example in first.examples
+        ) == 2
+
+
+def test_reservoir_selection_too_few_examples_raises(
+    tmp_path: Path,
+) -> None:
+    dataset = ListDataset(make_examples(2))
+    spec = make_spec(sample_size=3, seed=42, sampling="reservoir")
+
+    with pytest.raises(ValueError, match="only 2 item"):
+        materialize(
+            spec,
+            tmp_path,
+            dataset=dataset,
+            synthesizers=make_synthesizers(),
+        )
 
 
 def test_schema_3_manifest_still_loads(tmp_path: Path) -> None:

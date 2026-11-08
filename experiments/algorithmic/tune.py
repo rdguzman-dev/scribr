@@ -9,7 +9,7 @@ pYIN costs roughly 0.27 s per example, so scoring every trial on the full
 2,000-example tuning set is expensive. Only `frame_length` and
 `hop_length` change the pYIN result, so the runner caches that pass per
 example and reuses it across trials that share them. Stage 1 screens
-every trial on a 500-example nested prefix; stage 2 re-ranks only the top
+every trial on a 500-example nested screen; stage 2 re-ranks only the top
 finalists on the full set. The winner is the stage-2 best, not
 `study.best_trial`.
 
@@ -440,8 +440,8 @@ def run_tuning(
     """Run one two-stage tuning session and log it to MLflow.
 
     Args:
-        recordings: Tuning examples. The tuning spec selects a prefix, so
-            the screen and final subsets are nested.
+        recordings: Tuning examples. The stage-1 screen is a prefix of
+            the stage-2 subset, so the two stages stay nested.
         tempo: Tempo in BPM shared by the recordings.
         trials: Number of stage-1 trials. `None` runs until `timeout`.
         timeout: Wall-clock limit in seconds for stage 1.

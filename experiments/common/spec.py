@@ -30,11 +30,16 @@ class DatasetSpec:
             drawn uniformly from the whole split instead of taking the
             leading records. When `None`, selection is a prefix, which
             keeps nested tuning and validation sets reproducible.
+        sampling: Selection strategy. `None` preserves the seeded random
+            draw described above. `"prefix"` always takes the leading
+            records, and `"reservoir"` streams the whole split through a
+            seeded reservoir sample.
     """
 
     split: str = "test"
     sample_size: int | None = 20
     seed: int | None = None
+    sampling: str | None = None
 
     def __post_init__(self) -> None:
         if self.split not in SPLITS:
@@ -46,6 +51,21 @@ class DatasetSpec:
         if self.sample_size is not None and self.sample_size < 1:
             raise ValueError("sample_size must be positive or None")
 
+        if self.sampling not in (None, "prefix", "reservoir"):
+            raise ValueError(
+                f"unknown sampling {self.sampling!r}; expected one of "
+                "None, 'prefix', 'reservoir'"
+            )
+
+        if self.sampling is not None and self.sample_size is None:
+            raise ValueError("sampling requires a sample_size")
+
+        if self.sampling == "prefix" and self.seed is not None:
+            raise ValueError("prefix sampling does not use a seed")
+
+        if self.sampling == "reservoir" and self.seed is None:
+            raise ValueError("reservoir sampling requires a seed")
+
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> DatasetSpec:
         """Build a spec from its JSON-compatible mapping."""
@@ -53,15 +73,21 @@ class DatasetSpec:
             split=data["split"],
             sample_size=data["sample_size"],
             seed=data.get("seed"),
+            sampling=data.get("sampling"),
         )
 
     def to_dict(self) -> dict[str, Any]:
         """Return the spec as a JSON-compatible mapping."""
-        return {
+        data = {
             "split": self.split,
             "sample_size": self.sample_size,
             "seed": self.seed,
         }
+
+        if self.sampling is not None:
+            data["sampling"] = self.sampling
+
+        return data
 
 
 @dataclass(frozen=True, slots=True)
