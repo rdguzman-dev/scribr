@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from scribr.data import MelodyDataset
+from scribr.data.sampling import reservoir_sample
 from scribr.representation import MelodyExample, melody_to_text
 from scribr.synthesis import Instrument, Synthesizer
 from scribr.wav import write_wav
@@ -167,10 +168,12 @@ def materialize(
     An existing manifest is reused when it matches `spec`; pass
     `force=True` to rebuild the artifacts. Selection uses the leading
     `spec.dataset.sample_size` records when `seed` is `None`, or a
-    seeded random sample of the whole split when it is set. Round-robin
-    instrument assignment balances the sample across instruments. The
-    entire split is selected when `sample_size` is `None`, so identical
-    inputs always produce identical artifacts.
+    seeded random sample of the whole split when it is set. The
+    `sampling` field forces prefix selection or a streaming reservoir
+    sample instead. Round-robin instrument assignment balances the
+    sample across instruments. The entire split is selected when
+    `sample_size` is `None`, so identical inputs always produce
+    identical artifacts.
 
     Args:
         spec: Experiment configuration.
@@ -281,16 +284,22 @@ def _select_examples(
 ) -> list[tuple[int, MelodyExample]]:
     """Return `(dataset index, example)` pairs in selection order.
 
-    A seeded draw samples uniformly from the whole split. Round-robin
-    instrument assignment then gives each instrument an equal, disjoint
-    random subset, so the materialized sample is stratified by
-    instrument. Without a seed, the leading records are selected to keep
-    tuning and validation prefixes nested.
+    A seeded draw samples uniformly from the whole split. Reservoir
+    sampling does the same in bounded memory, which matters for the
+    training split. Round-robin instrument assignment then gives each
+    instrument an equal, disjoint random subset, so the materialized
+    sample is stratified by instrument. Without a seed, the leading
+    records are selected to keep tuning and validation prefixes nested.
     """
     if spec.sample_size is None:
         return list(enumerate(dataset))
 
-    if spec.seed is None:
+    if spec.sampling == "reservoir":
+        return reservoir_sample(
+            enumerate(dataset), spec.sample_size, seed=spec.seed
+        )
+
+    if spec.sampling == "prefix" or spec.seed is None:
         selected = list(islice(enumerate(dataset), spec.sample_size))
     else:
         candidates = list(enumerate(dataset))

@@ -77,6 +77,36 @@ def test_dataset_validation_errors() -> None:
     with pytest.raises(ValueError, match="sample_size"):
         DatasetSpec(sample_size=0)
 
+    with pytest.raises(ValueError, match="sampling"):
+        DatasetSpec(sampling="unknown")
+
+    with pytest.raises(ValueError, match="requires a sample_size"):
+        DatasetSpec(sample_size=None, sampling="prefix")
+
+    with pytest.raises(ValueError, match="prefix sampling"):
+        DatasetSpec(sampling="prefix", seed=42)
+
+    with pytest.raises(ValueError, match="reservoir sampling"):
+        DatasetSpec(sampling="reservoir")
+
+
+def test_reservoir_sampling_round_trips(tmp_path: Path) -> None:
+    spec = ExperimentSpec.load(CONFIG_PATH)
+    sampled = replace(
+        spec,
+        dataset=DatasetSpec(
+            split="train",
+            sample_size=2_000,
+            seed=42,
+            sampling="reservoir",
+        ),
+    )
+    path = tmp_path / "config.json"
+    sampled.save(path)
+
+    assert ExperimentSpec.load(path) == sampled
+    assert json.loads(path.read_text())["dataset"]["sampling"] == "reservoir"
+
 
 def test_synthesis_validation_errors() -> None:
     with pytest.raises(ValueError, match="sample_rate"):
