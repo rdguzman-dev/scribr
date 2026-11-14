@@ -38,6 +38,10 @@ class AlgorithmicConfig:
             compared against the candidate's RMS.
         rms_window_hops: RMS analysis window, as a multiple of
             `hop_length`.
+        onset_delta: Peak-picker threshold above the local onset-strength
+            mean.
+        onset_post_max_seconds: Peak-picker lookahead window, in seconds.
+            Zero keeps librosa's one-frame default.
     """
 
     sample_rate: int = 22_050
@@ -53,6 +57,8 @@ class AlgorithmicConfig:
     attack_reject_ratio: float = 0.7
     attack_backtrack_seconds: float = 0.05
     rms_window_hops: int = 2
+    onset_delta: float = 0.07
+    onset_post_max_seconds: float = 0.0
 
     def __post_init__(self) -> None:
         if not isinstance(self.quantize, bool):
@@ -111,6 +117,8 @@ class AlgorithmicConfig:
             "max_gap_seconds",
             "onset_merge_seconds",
             "attack_backtrack_seconds",
+            "onset_delta",
+            "onset_post_max_seconds",
         ):
             value = getattr(self, name)
             if not math.isfinite(value) or value < 0:
@@ -268,10 +276,22 @@ class AlgorithmicTranscriber:
             (pitches < config.min_pitch) | (pitches > config.max_pitch)
         ] = -1
 
+        # `peak_pick` requires a positive window, so zero seconds keeps
+        # librosa's one-frame default while longer windows scale with hop.
+        post_max = max(
+            1,
+            int(
+                config.onset_post_max_seconds
+                * config.sample_rate
+                / config.hop_length
+            ),
+        )
         attacks = librosa.onset.onset_detect(
             y=waveform,
             sr=config.sample_rate,
             hop_length=config.hop_length,
+            delta=config.onset_delta,
+            post_max=post_max,
             backtrack=False,
             units="frames",
         )

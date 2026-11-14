@@ -67,6 +67,8 @@ SILENCE_DB_RANGE = (-60.0, -20.0)
 MIN_NOTE_SECONDS_RANGE = (0.02, 0.15)
 MAX_GAP_SECONDS_RANGE = (0.0, 0.08)
 ONSET_MERGE_SECONDS_RANGE = (0.0, 0.10)
+ONSET_DELTA_RANGE = (0.05, 0.15)
+ONSET_POST_MAX_SECONDS_RANGE = (0.0, 0.06)
 ATTACK_REJECT_RATIO_RANGE = (0.0, 1.0)
 ATTACK_BACKTRACK_SECONDS_RANGE = (0.0, 0.10)
 
@@ -158,6 +160,10 @@ def _suggest_config(trial: optuna.Trial) -> AlgorithmicConfig:
         onset_merge_seconds=trial.suggest_float(
             "onset_merge_seconds", *ONSET_MERGE_SECONDS_RANGE
         ),
+        onset_delta=trial.suggest_float("onset_delta", *ONSET_DELTA_RANGE),
+        onset_post_max_seconds=trial.suggest_float(
+            "onset_post_max_seconds", *ONSET_POST_MAX_SECONDS_RANGE
+        ),
         quantize=True,
         attack_reject_ratio=trial.suggest_float(
             "attack_reject_ratio", *ATTACK_REJECT_RATIO_RANGE
@@ -182,6 +188,8 @@ def _default_trial_params() -> dict[str, Any]:
         "min_note_seconds": config.min_note_seconds,
         "max_gap_seconds": config.max_gap_seconds,
         "onset_merge_seconds": config.onset_merge_seconds,
+        "onset_delta": config.onset_delta,
+        "onset_post_max_seconds": config.onset_post_max_seconds,
         "attack_reject_ratio": config.attack_reject_ratio,
         "attack_backtrack_seconds": config.attack_backtrack_seconds,
         "rms_window_hops": config.rms_window_hops,
@@ -205,6 +213,8 @@ def _search_space() -> dict[str, Any]:
         },
         "max_gap_seconds": list(MAX_GAP_SECONDS_RANGE),
         "onset_merge_seconds": list(ONSET_MERGE_SECONDS_RANGE),
+        "onset_delta": list(ONSET_DELTA_RANGE),
+        "onset_post_max_seconds": list(ONSET_POST_MAX_SECONDS_RANGE),
         "attack_reject_ratio": list(ATTACK_REJECT_RATIO_RANGE),
         "attack_backtrack_seconds": list(ATTACK_BACKTRACK_SECONDS_RANGE),
         "rms_window_hops": list(RMS_WINDOW_HOP_CHOICES),
