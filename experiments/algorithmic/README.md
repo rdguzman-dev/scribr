@@ -74,11 +74,10 @@ artifacts are gitignored.
 
 ## Tune on training audio
 
-`tuning_config.json` draws a 2,000-example reservoir sample from the
-training split, and `validation_config.json` selects the first 2,000
-validation melodies. The reservoir draw is seeded, so the tuning sample is
-reproducible without materializing all 10.1 million training records. Do
-not choose parameters on test data.
+`tuning_config.json` and `validation_config.json` each draw a seeded
+2,000-example reservoir sample, from the training and validation splits
+respectively. Both draws are reproducible and keep only the selected
+records in memory. Do not choose parameters on test data.
 
 Both sets are materialized fresh. About 2,000 examples is roughly 1.5 GB of
 float32 audio in memory and 0.75 GB of WAV files on disk. The tuning sample
@@ -176,10 +175,10 @@ defaults assume the 2,000-example set. Leave `--n-jobs` at 1 because pYIN
 is CPU-bound and parallel trials do not nest in MLflow.
 
 To reproduce the old prefix selection, set `"sampling": "prefix"` in the
-tuning config and remove `seed` from its dataset block. Changing either
-field changes the dataset config, so materialized artifacts are reused only
-when the config matches. Delete `artifacts/tuning/` or use a fresh
-`--artifacts-dir` afterward.
+tuning or validation config and remove `seed` from its dataset block.
+Changing either field changes the dataset config, so materialized artifacts
+are reused only when the config matches. Delete `artifacts/tuning/` or use
+a fresh `--artifacts-dir` afterward.
 
 ## Compare against the human baseline
 

@@ -1,14 +1,15 @@
 # Prefix sampling
 
-Prefix sampling takes the first `sample_size` records of the training
-split. The algorithmic tuning experiment used this approach before adding
-reservoir sampling: with `sample_size: 2000`, it selected dataset indices
-0-1999 and never looked at later records. The held-out validation config
-still uses prefix selection; this document describes the tuning sample.
+Prefix sampling takes the first `sample_size` records of a split. The
+algorithmic tuning and validation experiments used this approach before
+adding reservoir sampling: with `sample_size: 2000`, tuning selected
+dataset indices 0-1999 and never looked at later training records. Both
+configs now use seeded reservoir samples; this document describes the
+earlier tuning prefix.
 
 Prefix selection is deterministic without a seed, and it keeps nested
-tuning and validation prefixes reproducible. Its weakness is coverage:
-the sample is entirely drawn from the beginning of the split.
+prefixes reproducible. Its weakness is coverage: the sample is entirely
+drawn from the beginning of the split.
 
 ## Resulting sample
 
@@ -47,8 +48,9 @@ smaller pitch range.
 
 ## Reproduce
 
-The committed `tuning_config.json` now uses reservoir sampling. To select
-the prefix instead, use this dataset block:
+The committed `tuning_config.json` and `validation_config.json` now use
+reservoir sampling. To select the tuning prefix instead, use this dataset
+block:
 
 ```json
 {

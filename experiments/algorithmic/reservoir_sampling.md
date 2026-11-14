@@ -1,22 +1,20 @@
 # Reservoir sampling
 
-Reservoir sampling draws a uniform sample from the whole training split in
-one streaming pass, keeping only `sample_size` items in memory. The
-algorithmic tuning experiment uses this approach so that the 2,000-example
-sample is not limited to the first records of the 10.1 million-record train
-split. The held-out validation split still uses prefix selection; this
-document describes the tuning sample.
+Reservoir sampling draws a uniform sample from a split in one streaming
+pass, keeping only `sample_size` items in memory. The algorithmic tuning
+and validation experiments use this approach so that their 2,000-example
+samples are not limited to the first records of their splits.
 
-`tuning_config.json` sets `sample_size` to 2,000, `seed` to 42, and
-`sampling` to `"reservoir"`. The seed makes the sample reproducible. The
-selected set is returned in uniformly random order, so the stage-1 screen
-(a prefix of the materialized sample) is also a uniform sample rather than
-an early slice of the dataset.
+`tuning_config.json` and `validation_config.json` set `sample_size` to
+2,000, `seed` to 42, and `sampling` to `"reservoir"`. The seed makes each
+sample reproducible. The selected set is returned in uniformly random
+order, so the stage-1 screen (a prefix of the materialized tuning sample)
+is also a uniform sample rather than an early slice of the dataset.
 
 Reservoir sampling is implemented by
 `scribr.data.sampling.reservoir_sample` using Algorithm R.
 
-## Resulting sample
+## Resulting tuning sample
 
 With seed 42, the 2,000 selected dataset indices range from 8,239 to
 10,120,518. The ten smallest selected indices are:
@@ -65,10 +63,38 @@ Compared with the prefix, the reservoir sample is closer to the full train
 split on all six attributes. Its largest difference is 1.45%, compared with
 up to 7.60% for the prefix.
 
+## Resulting validation sample
+
+With seed 42, the 2,000 selected validation indices range from 12 to
+70,904. The selection is spread across the 70,908-record split:
+
+| Index range | Selected |
+| --- | --- |
+| 0-14,180 | 384 |
+| 14,181-28,362 | 384 |
+| 28,363-42,543 | 415 |
+| 42,544-56,725 | 395 |
+| 56,726-70,907 | 422 |
+
+The round-robin assignment gives 500 examples per instrument, as it does
+for the tuning sample.
+
+Attribute means, from the dataset attributes and decoded note counts:
+
+| Attribute | Reservoir sample | Full validation split | Difference |
+| --- | --- | --- | --- |
+| Note count | 25.5730 | 25.1794 | +1.56% |
+| Note density | 0.3996 | 0.3934 | +1.56% |
+| Pitch range | 0.1582 | 0.1575 | +0.48% |
+| Contour | 1.1376 | 1.1088 | +2.59% |
+| Note change ratio | 0.2735 | 0.2698 | +1.37% |
+| Dynamic range | 0.1669 | 0.1654 | +0.89% |
+
 ## Reproduce
 
-The committed `tuning_config.json` already uses this sample. To print the
-selected indices without materializing audio:
+The committed `tuning_config.json` and `validation_config.json` already use
+reservoir samples. To print the selected tuning indices without
+materializing audio:
 
 ```bash
 uv run python - <<'PY'
@@ -82,4 +108,5 @@ PY
 ```
 
 The full split is scanned once, but only the 2,000 selected examples are
-kept in memory.
+kept in memory. Replace `train` with `validation` to print the validation
+sample.

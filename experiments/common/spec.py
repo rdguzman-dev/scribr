@@ -28,8 +28,7 @@ class DatasetSpec:
             entire split.
         seed: Seed for a random draw. When set, `sample_size` records are
             drawn uniformly from the whole split instead of taking the
-            leading records. When `None`, selection is a prefix, which
-            keeps nested tuning and validation sets reproducible.
+            leading records. When `None`, selection is a prefix.
         sampling: Selection strategy. `None` preserves the seeded random
             draw described above. `"prefix"` always takes the leading
             records, and `"reservoir"` streams the whole split through a

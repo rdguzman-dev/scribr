@@ -215,7 +215,9 @@ def test_baseline_tuning_and_validation_configs_use_separate_splits():
     assert tuning.instruments == baseline.instruments
     assert tuning.synthesis == baseline.synthesis
 
-    assert validation.dataset == DatasetSpec("validation", 2000)
+    assert validation.dataset == DatasetSpec(
+        "validation", 2000, 42, "reservoir"
+    )
     assert validation.instruments == tuning.instruments
     assert validation.synthesis == tuning.synthesis
 
