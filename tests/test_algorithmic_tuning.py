@@ -82,6 +82,12 @@ def test_suggest_config_respects_the_fixed_fields() -> None:
     assert config.frame_length in tune.FRAME_LENGTH_CHOICES
     assert config.hop_length in tune.HOP_LENGTH_CHOICES
     assert config.rms_window_hops in tune.RMS_WINDOW_HOP_CHOICES
+    assert tune.ONSET_DELTA_RANGE[0] <= config.onset_delta <= (
+        tune.ONSET_DELTA_RANGE[1]
+    )
+    assert tune.ONSET_POST_MAX_SECONDS_RANGE[0] <= (
+        config.onset_post_max_seconds
+    ) <= tune.ONSET_POST_MAX_SECONDS_RANGE[1]
 
 
 def test_default_trial_params_cover_the_search_space() -> None:
@@ -93,6 +99,8 @@ def test_default_trial_params_cover_the_search_space() -> None:
         "min_note_seconds",
         "max_gap_seconds",
         "onset_merge_seconds",
+        "onset_delta",
+        "onset_post_max_seconds",
         "attack_reject_ratio",
         "attack_backtrack_seconds",
         "rms_window_hops",
@@ -149,6 +157,20 @@ def test_cached_track_reuses_pyin_across_segmentation_configs(
     )
 
     assert third._track_pitch(audio) is not track
+    assert calls == [(2048, 256), (2048, 512)]
+
+    # Onset peak-picker parameters only affect segmentation.
+    fourth = tune._CachedAlgorithmicTranscriber(
+        AlgorithmicConfig(
+            frame_length=2048,
+            hop_length=256,
+            onset_delta=0.09,
+            onset_post_max_seconds=0.03,
+        ),
+        cache,
+    )
+
+    assert fourth._track_pitch(audio) is track
     assert calls == [(2048, 256), (2048, 512)]
 
     # Different audio under the same config is a separate entry.

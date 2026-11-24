@@ -125,6 +125,8 @@ pitch bounds, and `quantize=True`. Optuna suggests the rest:
 | `min_note_seconds` | 0.02 to 0.15, log scale |
 | `max_gap_seconds` | 0 to 0.08 |
 | `onset_merge_seconds` | 0 to 0.1 |
+| `onset_delta` | 0.05 to 0.15 |
+| `onset_post_max_seconds` | 0 to 0.06 |
 | `attack_reject_ratio` | 0 to 1 |
 | `attack_backtrack_seconds` | 0 to 0.1 |
 | `rms_window_hops` | 1, 2, 4, 8 |

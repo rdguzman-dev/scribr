@@ -68,6 +68,10 @@ def test_invalid_inputs(
         {"rms_window_hops": 0},
         {"rms_window_hops": True},
         {"rms_window_hops": 1.5},
+        {"onset_delta": -0.1},
+        {"onset_delta": float("inf")},
+        {"onset_post_max_seconds": -0.1},
+        {"onset_post_max_seconds": float("nan")},
     ],
 )
 def test_invalid_config(options):
@@ -81,6 +85,8 @@ def test_new_config_fields_default_to_current_behavior():
     assert config.attack_reject_ratio == 0.7
     assert config.attack_backtrack_seconds == 0.05
     assert config.rms_window_hops == 2
+    assert config.onset_delta == 0.07
+    assert config.onset_post_max_seconds == 0.0
     assert AlgorithmicConfig(attack_reject_ratio=0.0).attack_reject_ratio == 0.0
     assert AlgorithmicConfig(attack_reject_ratio=1.0).attack_reject_ratio == 1.0
     assert (
@@ -177,6 +183,35 @@ def test_real_repeated_pitch_with_new_attack():
     reference = Melody((Note(69, 0, 1), Note(69, 1, 2)))
     assert [note.pitch for note in estimate] == [69, 69]
     assert evaluate(reference, estimate, tempo=120)["F-measure_no_offset"] == 1
+
+
+def test_onset_peak_picker_uses_the_config(monkeypatch):
+    calls = {}
+
+    def fake_onset_detect(**options):
+        calls.update(options)
+        return np.array([], dtype=int)
+
+    monkeypatch.setattr(
+        algorithmic_transcriber.librosa.onset,
+        "onset_detect",
+        fake_onset_detect,
+    )
+    AlgorithmicTranscriber().transcribe(_tone(69), 22050, 120)
+
+    assert calls["delta"] == 0.07
+    assert calls["post_max"] == 1
+
+    AlgorithmicTranscriber(
+        AlgorithmicConfig(
+            hop_length=256,
+            onset_delta=0.09,
+            onset_post_max_seconds=0.03,
+        )
+    ).transcribe(_tone(69), 22050, 120)
+
+    assert calls["delta"] == 0.09
+    assert calls["post_max"] == 2
 
 
 def test_no_detected_attacks_is_handled(monkeypatch):
