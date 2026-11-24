@@ -38,6 +38,31 @@ SOUNDFONT_ENV_VAR = "SCRIBR_SOUNDFONT"
 _INT16_SCALE = 32768.0
 
 
+def validate_synthesis_parameters(
+    sample_rate: int,
+    tempo: float,
+    velocity: int,
+    gain: float,
+    release_tail_seconds: float,
+) -> None:
+    """Validate synthesis parameters shared by `Synthesizer` and
+    `SynthesisSpec`."""
+    if sample_rate <= 0:
+        raise ValueError("sample_rate must be positive")
+
+    if tempo <= 0:
+        raise ValueError("tempo must be positive")
+
+    if not 1 <= velocity <= 127:
+        raise ValueError("velocity must be in [1, 127]")
+
+    if gain <= 0:
+        raise ValueError("gain must be positive")
+
+    if release_tail_seconds < 0:
+        raise ValueError("release_tail_seconds must be non-negative")
+
+
 class Synthesizer:
     """Synthesizer for rendering `Melody` objects to mono `float32`
     waveforms.
@@ -83,23 +108,16 @@ class Synthesizer:
         if not path.is_file():
             raise FileNotFoundError(f"SoundFont not found: {path}")
 
-        if sample_rate <= 0:
-            raise ValueError("sample_rate must be positive")
-
-        if tempo <= 0:
-            raise ValueError("tempo must be positive")
+        validate_synthesis_parameters(
+            sample_rate=sample_rate,
+            tempo=tempo,
+            velocity=velocity,
+            gain=gain,
+            release_tail_seconds=release_tail_seconds,
+        )
 
         if not 0 <= program <= 127:
             raise ValueError("program must be in [0, 127]")
-
-        if not 1 <= velocity <= 127:
-            raise ValueError("velocity must be in [1, 127]")
-
-        if gain <= 0:
-            raise ValueError("gain must be positive")
-
-        if release_tail_seconds < 0:
-            raise ValueError("release_tail_seconds must be non-negative")
 
         if not 0 <= midi_channel <= 15:
             raise ValueError("midi_channel must be in [0, 15]")
