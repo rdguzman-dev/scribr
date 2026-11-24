@@ -29,7 +29,10 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
+from ..representation import STEPS_PER_MELODY
 from .features import fix_length
+from .model import DEFAULT_DROPOUT
+from .targets import NUM_CLASSES
 
 SAMPLE_RATE = 22_050
 HOP_LENGTH = 256
@@ -401,3 +404,147 @@ class BasicPitchFrontend(nn.Module):
         ]
 
         return torch.stack(channels, dim=1)[:, :, :N_STACK_BINS, :]
+
+
+class BasicPitchTrunk(nn.Module):
+    """Basic Pitch's contour trunk, without the polyphonic heads.
+
+    The exported BatchNorms are folded into the convolutions, so the
+    chain is `conv2 -> ReLU -> conv3 -> sigmoid -> conv4 -> ReLU`. The
+    first `Conv2D(32, (5, 5))` in `basic_pitch/models.py` feeds an
+    overwritten variable and is absent from the export.
+
+    Args:
+        pretrained: Load the converted Basic Pitch weights. `False`
+            keeps the same architecture with fresh initialization, which
+            is the control arm for the transfer ablation.
+    """
+
+    def __init__(self, *, pretrained: bool = True) -> None:
+        super().__init__()
+
+        self.conv2 = nn.Conv2d(
+            8,
+            8,
+            kernel_size=(3, 39),
+            stride=(1, 1),
+            padding=(1, 19),
+        )
+        self.conv3 = nn.Conv2d(
+            8,
+            1,
+            kernel_size=(5, 5),
+            stride=(1, 1),
+            padding=(2, 2),
+        )
+        self.conv4 = nn.Conv2d(
+            1,
+            32,
+            kernel_size=(7, 7),
+            stride=(1, 3),
+            padding=(3, 2),
+        )
+
+        if pretrained:
+            self._load_pretrained_weights()
+
+    def _load_pretrained_weights(self) -> None:
+        weights = _load_weights()
+
+        for name in ("conv2", "conv3", "conv4"):
+            module = getattr(self, name)
+            weight = torch.from_numpy(weights[f"{name}.weight"])
+            bias = torch.from_numpy(weights[f"{name}.bias"])
+
+            with torch.no_grad():
+                module.weight.copy_(weight)
+                module.bias.copy_(bias)
+
+    def forward(self, stack: Tensor) -> Tensor:
+        """Map `(batch, 8, frames, 264)` to `(batch, 32, frames, 88)`."""
+        hidden = F.relu(self.conv2(stack))
+        hidden = torch.sigmoid(self.conv3(hidden))
+
+        return F.relu(self.conv4(hidden))
+
+
+class BasicPitchPitchSequenceCNN(nn.Module):
+    """Pretrained Basic Pitch trunk with a per-step pitch-sequence head.
+
+    The CQT frontend runs in `SynthesizedMelodyDataset`, like the log-mel
+    extractor does for `PitchSequenceCNN`. This model therefore takes the
+    harmonic stack `(batch, 8, 264, frames)` rather than raw audio.
+
+    Args:
+        steps: Number of dataset steps to predict.
+        num_classes: Size of the per-step class vocabulary.
+        dropout: Dropout probability before the classifier.
+        pretrained: Load the converted trunk weights. `False` keeps the
+            same architecture with fresh initialization, which is the
+            control arm for the transfer ablation.
+
+    Raises:
+        ValueError: If a validation constraint is violated.
+    """
+
+    def __init__(
+        self,
+        *,
+        steps: int = STEPS_PER_MELODY,
+        num_classes: int = NUM_CLASSES,
+        dropout: float = DEFAULT_DROPOUT,
+        pretrained: bool = True,
+    ) -> None:
+        super().__init__()
+
+        if steps < 1:
+            raise ValueError("steps must be at least 1")
+
+        if num_classes < 1:
+            raise ValueError("num_classes must be at least 1")
+
+        if not 0.0 <= dropout < 1.0:
+            raise ValueError("dropout must be in [0, 1)")
+
+        self.steps = int(steps)
+        self.trunk = BasicPitchTrunk(pretrained=pretrained)
+        self.temporal = nn.Sequential(
+            nn.Conv1d(32, 32, kernel_size=5, padding=2),
+            nn.ReLU(),
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(32, num_classes),
+        )
+
+    def forward(self, features: Tensor) -> Tensor:
+        """Predict per-step class logits from harmonic CQT features.
+
+        Args:
+            features: `(batch, 8, 264, frames)` harmonic CQT.
+
+        Returns:
+            A `(batch, steps, num_classes)` float tensor of logits.
+        """
+        if (
+            features.ndim != 4
+            or features.shape[1] != N_HARMONICS
+            or features.shape[2] != N_STACK_BINS
+        ):
+            raise ValueError(
+                "features must have shape "
+                f"(batch, {N_HARMONICS}, {N_STACK_BINS}, frames), got "
+                f"{tuple(features.shape)}"
+            )
+
+        hidden = self.trunk(features.transpose(2, 3))
+        hidden = hidden.mean(dim=-1)
+        hidden = self.temporal(hidden)
+        hidden = F.interpolate(
+            hidden,
+            size=self.steps,
+            mode="linear",
+            align_corners=False,
+        )
+
+        return self.classifier(hidden.transpose(1, 2))
