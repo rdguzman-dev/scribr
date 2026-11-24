@@ -72,6 +72,11 @@ class OptimizationSpec:
     """Training loop and optimizer settings.
 
     Attributes:
+        learning_rate: Learning rate for the model's pretrained or
+            baseline parameters.
+        head_learning_rate: Learning rate for the newly initialized
+            output head, when the model separates one from its trunk.
+            `None` keeps every parameter at `learning_rate`.
         class_weights: Whether to weight the loss by token frequency.
         class_weight_power: Exponent applied to inverse token
             frequency. `1.0` is full inverse frequency, `0.0` is
@@ -86,6 +91,7 @@ class OptimizationSpec:
     batch_size: int = 64
     epochs: int = 30
     learning_rate: float = 1e-3
+    head_learning_rate: float | None = None
     weight_decay: float = 1e-4
     min_learning_rate: float = 1e-4
     gradient_clip: float = 5.0
@@ -109,6 +115,12 @@ class OptimizationSpec:
 
         if self.learning_rate <= 0:
             raise ValueError("learning_rate must be positive")
+
+        if (
+            self.head_learning_rate is not None
+            and self.head_learning_rate <= 0
+        ):
+            raise ValueError("head_learning_rate must be positive")
 
         if self.weight_decay < 0:
             raise ValueError("weight_decay must be non-negative")
@@ -145,6 +157,7 @@ class OptimizationSpec:
             batch_size=data["batch_size"],
             epochs=data["epochs"],
             learning_rate=data["learning_rate"],
+            head_learning_rate=data.get("head_learning_rate"),
             weight_decay=data["weight_decay"],
             min_learning_rate=data["min_learning_rate"],
             gradient_clip=data["gradient_clip"],
@@ -164,6 +177,7 @@ class OptimizationSpec:
             "batch_size": self.batch_size,
             "epochs": self.epochs,
             "learning_rate": self.learning_rate,
+            "head_learning_rate": self.head_learning_rate,
             "weight_decay": self.weight_decay,
             "min_learning_rate": self.min_learning_rate,
             "gradient_clip": self.gradient_clip,

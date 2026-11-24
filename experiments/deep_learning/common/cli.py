@@ -30,7 +30,12 @@ from scribr.deep_learning import FeatureExtractor
 from .data import default_synthesizer_factory, load_examples
 from .inference import run_evaluation, write_report
 from .spec import DataSpec, TrainingConfig
-from .training import EXPERIMENT, resolve_device, train
+from .training import (
+    EXPERIMENT,
+    ParameterGroups,
+    resolve_device,
+    train,
+)
 
 BuildFeatures = Callable[[Mapping[str, Any]], FeatureExtractor]
 BuildModel = Callable[[Mapping[str, Any], Mapping[str, Any]], nn.Module]
@@ -42,6 +47,7 @@ def train_main(
     *,
     default_config: Path,
     default_artifacts_dir: Path,
+    parameter_groups: ParameterGroups | None = None,
     description: str | None = None,
 ) -> None:
     """Parse training arguments, train one model, and log the run."""
@@ -148,6 +154,7 @@ def train_main(
         artifacts_dir=artifacts_dir,
         run_name=run_name,
         tracking_uri=args.tracking_uri,
+        parameter_groups=parameter_groups,
         soundfont_path=args.soundfont,
         data_root=args.data_root,
         device=args.device,

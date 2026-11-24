@@ -31,6 +31,7 @@ from experiments.deep_learning.common.spec import (
 )
 from experiments.deep_learning.common.training import (
     EXPERIMENT,
+    _make_optimizer,
     _train_epoch,
     flatten_config,
     resolve_device,
@@ -136,6 +137,22 @@ def test_config_round_trips_through_json(tmp_path: Path) -> None:
     assert TrainingConfig.load(path) == config
 
 
+def test_config_round_trips_with_head_learning_rate(tmp_path: Path) -> None:
+    config = tiny_config()
+    config = replace(
+        config,
+        optimization=replace(
+            config.optimization,
+            head_learning_rate=0.01,
+        ),
+    )
+    path = tmp_path / "config.json"
+
+    config.save(path)
+
+    assert TrainingConfig.load(path) == config
+
+
 @pytest.mark.parametrize(
     "build",
     [
@@ -143,6 +160,8 @@ def test_config_round_trips_through_json(tmp_path: Path) -> None:
         lambda: DataSpec(max_examples=0),
         lambda: DataSpec(num_workers=-1),
         lambda: OptimizationSpec(epochs=0),
+        lambda: OptimizationSpec(head_learning_rate=0.0),
+        lambda: OptimizationSpec(head_learning_rate=-0.1),
         lambda: OptimizationSpec(metric_examples=0),
         lambda: OptimizationSpec(class_weight_power=-0.1),
         lambda: OptimizationSpec(class_weight_power=1.1),
@@ -194,6 +213,36 @@ def test_flatten_config_uses_dot_separated_names() -> None:
         "model.dropout": 0.1,
         "model.head.size": 2,
     }
+
+
+def test_make_optimizer_uses_parameter_group_rates() -> None:
+    model = nn.Linear(2, 2)
+    optimization = OptimizationSpec(
+        learning_rate=0.0001,
+        head_learning_rate=0.001,
+    )
+
+    def groups(
+        model: nn.Module,
+        optimization: OptimizationSpec,
+    ) -> list[dict[str, object]]:
+        return [
+            {"params": list(model.parameters()), "lr": 0.01},
+        ]
+
+    optimizer = _make_optimizer(model, optimization, groups)
+
+    assert optimizer.param_groups[0]["lr"] == 0.01
+
+
+def test_make_optimizer_defaults_to_one_group() -> None:
+    model = nn.Linear(2, 2)
+    optimization = OptimizationSpec(learning_rate=0.01)
+
+    optimizer = _make_optimizer(model, optimization, None)
+
+    assert len(optimizer.param_groups) == 1
+    assert optimizer.param_groups[0]["lr"] == 0.01
 
 
 def test_subset_fingerprint_is_stable_and_sensitive(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from experiments.deep_learning.common.spec import OptimizationSpec
 from scribr.deep_learning import (
     BasicPitchFrontend,
     BasicPitchPitchSequenceCNN,
@@ -29,3 +30,31 @@ def build_model(
         dropout=spec["dropout"],
         pretrained=spec["pretrained"],
     )
+
+
+def build_parameter_groups(
+    model: BasicPitchPitchSequenceCNN,
+    optimization: OptimizationSpec,
+) -> list[dict[str, Any]]:
+    """Give the new head a faster rate than the pretrained trunk."""
+    if optimization.head_learning_rate is None:
+        return [
+            {
+                "params": list(model.parameters()),
+                "lr": optimization.learning_rate,
+            }
+        ]
+
+    return [
+        {
+            "params": list(model.trunk.parameters()),
+            "lr": optimization.learning_rate,
+        },
+        {
+            "params": [
+                *model.temporal.parameters(),
+                *model.classifier.parameters(),
+            ],
+            "lr": optimization.head_learning_rate,
+        },
+    ]
