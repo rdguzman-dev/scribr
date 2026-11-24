@@ -34,6 +34,10 @@ _EPSILON = 1e-5
 class FeatureExtractor(Protocol):
     """Audio feature contract shared by training and inference.
 
+    A feature map may have one or more leading dimensions; its last axis
+    is always time. Log-mel spectrograms use `(channels, frames)`, while
+    Basic Pitch's harmonic CQT uses `(harmonics, bins, frames)`.
+
     Attributes:
         sample_rate: Sample rate of the expected input waveform in Hz.
         num_frames: Fixed length of the time axis, or `None` to keep

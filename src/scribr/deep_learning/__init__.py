@@ -1,5 +1,10 @@
 """Supervised deep learning transcription."""
 
+from .basic_pitch import (
+    BasicPitchFrontend,
+    BasicPitchPitchSequenceCNN,
+    BasicPitchTrunk,
+)
 from .dataset import SynthesizedMelodyDataset
 from .features import (
     DEFAULT_F_MAX,
@@ -35,6 +40,9 @@ from .targets import (
 from .transcriber import DeepLearningTranscriber
 
 __all__ = [
+    "BasicPitchFrontend",
+    "BasicPitchPitchSequenceCNN",
+    "BasicPitchTrunk",
     "DEFAULT_CHANNELS",
     "DEFAULT_DROPOUT",
     "DEFAULT_F_MAX",

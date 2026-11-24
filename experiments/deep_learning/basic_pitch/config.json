@@ -1,0 +1,51 @@
+{
+  "name": "basic_pitch",
+  "instrument": "piano",
+  "evaluation_instruments": [
+    "piano",
+    "acoustic_guitar",
+    "electric_guitar",
+    "violin"
+  ],
+  "dataset": {
+    "split": "train",
+    "max_examples": 10000,
+    "num_workers": 4
+  },
+  "validation": {
+    "split": "validation",
+    "max_examples": 1000,
+    "num_workers": 4
+  },
+  "synthesis": {
+    "sample_rate": 22050,
+    "tempo": 120.0,
+    "velocity": 80,
+    "gain": 1.0,
+    "release_tail_seconds": 0.5
+  },
+  "features": {
+    "sample_rate": 22050,
+    "num_frames": null
+  },
+  "model": {
+    "dropout": 0.1,
+    "pretrained": true
+  },
+  "optimization": {
+    "seed": 42,
+    "batch_size": 64,
+    "epochs": 30,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "min_learning_rate": 0.0001,
+    "gradient_clip": 5.0,
+    "log_every_steps": 50,
+    "metric_examples": 128,
+    "metric_interval": 1,
+    "class_weights": true,
+    "class_weight_power": 0.5,
+    "primary_instrument": null,
+    "device": "auto"
+  }
+}

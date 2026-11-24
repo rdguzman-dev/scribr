@@ -14,6 +14,7 @@ dependencies = [
     "mir-eval>=0.8.2",
     "numpy>=2.5.3",
     "pyfluidsynth>=1.4.0",
+    "scipy>=1.18",
     "tfrecord[torch]>=1.14.6",
     "torch>=2.14.0",
     "torchaudio>=2.11.0",
@@ -29,6 +30,8 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "mlflow>=3.17.0",
+    "onnx>=1.16",
+    "onnxruntime>=1.20",
     "optuna>=5.0.0",
     "pytest>=9.1.1",
 ]
@@ -38,4 +41,5 @@ testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
     "integration: requires a system FluidSynth install and a SoundFont (set SCRIBR_SOUNDFONT)",
+    "basic_pitch: requires the Basic Pitch ONNX artifact for reference checks",
 ]
