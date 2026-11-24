@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from scribr.data import SPLITS
-from scribr.synthesis import Instrument
+from scribr.synthesis import Instrument, validate_synthesis_parameters
 from scribr.synthesis.synthesizer import (
     DEFAULT_GAIN,
     DEFAULT_RELEASE_TAIL_SECONDS,
@@ -103,20 +103,13 @@ class SynthesisSpec:
     release_tail_seconds: float = DEFAULT_RELEASE_TAIL_SECONDS
 
     def __post_init__(self) -> None:
-        if self.sample_rate <= 0:
-            raise ValueError("sample_rate must be positive")
-
-        if self.tempo <= 0:
-            raise ValueError("tempo must be positive")
-
-        if not 1 <= self.velocity <= 127:
-            raise ValueError("velocity must be in [1, 127]")
-
-        if self.gain <= 0:
-            raise ValueError("gain must be positive")
-
-        if self.release_tail_seconds < 0:
-            raise ValueError("release_tail_seconds must be non-negative")
+        validate_synthesis_parameters(
+            sample_rate=self.sample_rate,
+            tempo=self.tempo,
+            velocity=self.velocity,
+            gain=self.gain,
+            release_tail_seconds=self.release_tail_seconds,
+        )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> SynthesisSpec:

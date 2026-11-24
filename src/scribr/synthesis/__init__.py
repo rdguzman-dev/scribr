@@ -10,6 +10,7 @@ from .synthesizer import (
     DEFAULT_VELOCITY,
     SOUNDFONT_ENV_VAR,
     Synthesizer,
+    validate_synthesis_parameters,
 )
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "SOUNDFONT_ENV_VAR",
     "Instrument",
     "Synthesizer",
+    "validate_synthesis_parameters",
 ]
