@@ -7,7 +7,6 @@ loss aggregation, validation, checkpointing, and MLflow logging.
 
 from __future__ import annotations
 
-import json
 import math
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -21,6 +20,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
 
+from experiments.common.json import write_json
 from experiments.common.tracking import (
     DEFAULT_TRACKING_URI,
     git_metadata,
@@ -306,10 +306,7 @@ def train(
         config_path = artifacts / "config.json"
         config.save(config_path)
         history_path = artifacts / "history.json"
-        history_path.write_text(
-            json.dumps(history, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        write_json(history, history_path)
 
         log_artifact(config_path)
         log_artifact(history_path)

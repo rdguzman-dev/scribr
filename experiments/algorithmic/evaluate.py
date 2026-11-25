@@ -2,7 +2,6 @@
 
 import argparse
 import hashlib
-import json
 import wave
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass
@@ -11,6 +10,7 @@ from pathlib import Path
 import librosa
 import numpy as np
 
+from experiments.common.json import read_json
 from experiments.common.materialize import Manifest, materialize
 from experiments.common.predictions import TextPredictions
 from experiments.common.report import write_report
@@ -173,7 +173,7 @@ def main() -> None:
     args = parser.parse_args()
 
     config = AlgorithmicConfig(
-        **json.loads(args.parameters.read_text()) if args.parameters else {}
+        **read_json(args.parameters) if args.parameters else {}
     )
     transcriber = AlgorithmicTranscriber(config)
     artifacts_dir = args.artifacts_dir

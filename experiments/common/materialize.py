@@ -10,7 +10,6 @@ environment-specific metadata.
 from __future__ import annotations
 
 import hashlib
-import json
 import random
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -24,6 +23,7 @@ from scribr.representation import MelodyExample, melody_to_text
 from scribr.synthesis import Instrument, Synthesizer
 from scribr.wav import write_wav
 
+from .json import read_json, write_json
 from .spec import DatasetSpec, ExperimentSpec
 from .synthesis import SynthesizerFactory, resolve_soundfont_path
 
@@ -141,13 +141,11 @@ class Manifest:
     @classmethod
     def load(cls, path: str | Path) -> Manifest:
         """Load a manifest from a JSON file."""
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
-        return cls.from_dict(data)
+        return cls.from_dict(read_json(path))
 
     def save(self, path: str | Path) -> None:
         """Write the manifest to a JSON file."""
-        text = json.dumps(self.to_dict(), indent=2) + "\n"
-        Path(path).write_text(text, encoding="utf-8")
+        write_json(self.to_dict(), path)
 
 
 def materialize(

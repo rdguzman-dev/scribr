@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -16,6 +15,8 @@ from scribr.synthesis.synthesizer import (
     DEFAULT_TEMPO_BPM,
     DEFAULT_VELOCITY,
 )
+
+from .json import read_json, write_json
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,10 +182,8 @@ class ExperimentSpec:
     @classmethod
     def load(cls, path: str | Path) -> ExperimentSpec:
         """Load a spec from a JSON file."""
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
-        return cls.from_dict(data)
+        return cls.from_dict(read_json(path))
 
     def save(self, path: str | Path) -> None:
         """Write the spec to a JSON file."""
-        text = json.dumps(self.to_dict(), indent=2) + "\n"
-        Path(path).write_text(text, encoding="utf-8")
+        write_json(self.to_dict(), path)
