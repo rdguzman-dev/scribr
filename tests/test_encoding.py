@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from scribr.representation import is_on_step_grid
 from scribr.representation.encoding import (
     decode_pitch_sequence,
     encode_pitch_sequence,
@@ -75,6 +76,17 @@ def test_encode_defaults_to_length_of_last_note() -> None:
 
 def test_encode_empty_melody() -> None:
     assert encode_pitch_sequence(Melody()) == ()
+
+
+def test_is_on_step_grid_accepts_step_boundaries() -> None:
+    assert is_on_step_grid(0.0)
+    assert is_on_step_grid(0.25)
+    assert is_on_step_grid(2.75)
+
+
+def test_is_on_step_grid_rejects_off_grid_times() -> None:
+    assert not is_on_step_grid(0.3)
+    assert not is_on_step_grid(1.0 / 3.0)
 
 
 def test_encode_rejects_off_grid_timing() -> None:

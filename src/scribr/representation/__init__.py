@@ -3,6 +3,7 @@
 from .encoding import (
     decode_pitch_sequence,
     encode_pitch_sequence,
+    is_on_step_grid,
 )
 from .melody import (
     DATASET_MAX_PITCH,
@@ -35,6 +36,7 @@ __all__ = [
     "Note",
     "decode_pitch_sequence",
     "encode_pitch_sequence",
+    "is_on_step_grid",
     "melody_from_text",
     "melody_to_text",
 ]

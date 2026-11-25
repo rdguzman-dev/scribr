@@ -134,6 +134,13 @@ def encode_pitch_sequence(
     return tuple(sequence)
 
 
+def is_on_step_grid(beat: float) -> bool:
+    """Return whether `beat` is on the dataset's step grid."""
+    steps = beat * STEPS_PER_QUARTER_NOTE
+
+    return abs(steps - round(steps)) <= _QUANTIZATION_TOLERANCE
+
+
 def _step_to_beat(step: int) -> float:
     """Convert a dataset step index to a quarter-note beat position."""
     return step / STEPS_PER_QUARTER_NOTE
@@ -141,14 +148,13 @@ def _step_to_beat(step: int) -> float:
 
 def _beat_to_step(beat: float, *, label: str) -> int:
     """Convert a quarter-note beat position to a dataset step index."""
-    step = beat * STEPS_PER_QUARTER_NOTE
-    rounded = round(step)
-
-    if abs(step - rounded) > _QUANTIZATION_TOLERANCE:
+    if not is_on_step_grid(beat):
         raise ValueError(
             f"{label} {beat} beats is not on the dataset's "
             "4-steps-per-quarter-note grid"
         )
+
+    rounded = round(beat * STEPS_PER_QUARTER_NOTE)
 
     if rounded < 0:
         raise ValueError(f"{label} {beat} beats must be non-negative")

@@ -12,10 +12,7 @@ from scribr.evaluation import (
     DEFAULT_PITCH_TOLERANCE_CENTS,
     evaluate,
 )
-from scribr.representation import STEPS_PER_QUARTER_NOTE, Melody
-
-# A time is on the dataset grid when it lands on a step boundary.
-_GRID_EPSILON_STEPS = 1e-9
+from scribr.representation import Melody, is_on_step_grid
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,10 +106,12 @@ def evaluate_predictions(
                 group=group,
                 metrics=scores,
                 off_grid_onsets=sum(
-                    not _on_grid(note.onset) for note in estimate.notes
+                    not is_on_step_grid(note.onset)
+                    for note in estimate.notes
                 ),
                 off_grid_offsets=sum(
-                    not _on_grid(note.offset) for note in estimate.notes
+                    not is_on_step_grid(note.offset)
+                    for note in estimate.notes
                 ),
             )
         )
@@ -162,9 +161,3 @@ def group_counts(evaluation: ExperimentEvaluation) -> dict[str, int]:
         counts[example.group] = counts.get(example.group, 0) + 1
 
     return counts
-
-
-def _on_grid(time: float) -> bool:
-    steps = time * STEPS_PER_QUARTER_NOTE
-
-    return abs(steps - round(steps)) < _GRID_EPSILON_STEPS
