@@ -13,7 +13,11 @@ from pathlib import Path
 
 from experiments.deep_learning.common.cli import train_main
 
-from .pipeline import build_features, build_model
+from .pipeline import (
+    build_features,
+    build_model,
+    build_parameter_groups,
+)
 
 _DIR = Path(__file__).resolve().parent
 
@@ -23,5 +27,6 @@ if __name__ == "__main__":
         build_model,
         default_config=_DIR / "config.json",
         default_artifacts_dir=_DIR / "artifacts",
+        parameter_groups=build_parameter_groups,
         description=__doc__,
     )

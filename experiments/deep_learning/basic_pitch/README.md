@@ -40,14 +40,19 @@ Artifacts land in `artifacts/<run name>/`: `best.pt`, `last.pt`,
 `config.json`, and `history.json`. Watch the first validation decode:
 it should produce an actual melody, not only `HOLD` and `NOTE_OFF`. If
 every decode is empty after the smoke run, check that class weights are
-on and compare the first validation loss with the log-mel run.
+on and compare the first validation loss with the log-mel run. Two
+epochs is a short run for a randomly initialized head. If the smoke
+still stays all-`HOLD`, overfit 32 examples before starting the full
+run. That separates a slow start from a wiring problem.
 
 ## Full run
 
 The committed `config.json` uses 10,000 training melodies and 1,000
-validation melodies for 30 epochs. The learning rate is `1e-4` because
-the trunk is pretrained. Do not freeze it: the trunk is small and its
-weights need to move toward FluidSynth timbres.
+validation melodies for 30 epochs. The pretrained trunk uses `1e-4`,
+while the new `temporal` and `classifier` layers use
+`head_learning_rate = 1e-3`. The head starts from random weights, so it
+needs to move faster than the trunk. Do not freeze the trunk: it is
+small and its weights need to move toward FluidSynth timbres.
 
 ```bash
 uv run python -m experiments.deep_learning.basic_pitch.train

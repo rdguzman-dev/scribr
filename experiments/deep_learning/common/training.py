@@ -48,6 +48,11 @@ from .spec import OptimizationSpec, TrainingConfig
 
 EXPERIMENT = "scribr-deep-learning"
 
+ParameterGroups = Callable[
+    [nn.Module, OptimizationSpec],
+    Sequence[Mapping[str, Any]],
+]
+
 
 @dataclass(frozen=True, slots=True)
 class TrainingResult:
@@ -78,6 +83,7 @@ def train(
     artifacts_dir: str | Path,
     run_name: str,
     tracking_uri: str | Path = DEFAULT_TRACKING_URI,
+    parameter_groups: ParameterGroups | None = None,
     soundfont_path: str | Path | None = None,
     data_root: str | Path | None = None,
     device: str | None = None,
@@ -94,6 +100,9 @@ def train(
         artifacts_dir: Directory for checkpoints, config, and history.
         run_name: MLflow run name.
         tracking_uri: MLflow tracking URI, or a SQLite database path.
+        parameter_groups: Builds optimizer parameter groups from the
+            model and optimization spec. `None` puts every parameter in
+            one group at `config.optimization.learning_rate`.
         soundfont_path: SoundFont override; defaults to
             `SCRIBR_SOUNDFONT`. Ignored when `synthesizer_factory` is
             given.
@@ -148,10 +157,10 @@ def train(
         num_workers=config.validation.num_workers,
     )
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=config.optimization.learning_rate,
-        weight_decay=config.optimization.weight_decay,
+    optimizer = _make_optimizer(
+        model,
+        config.optimization,
+        parameter_groups,
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
@@ -353,6 +362,24 @@ def resolve_device(requested: str) -> torch.device:
         raise ValueError("CUDA is not available on this machine")
 
     return torch.device(requested)
+
+
+def _make_optimizer(
+    model: nn.Module,
+    optimization: OptimizationSpec,
+    parameter_groups: ParameterGroups | None,
+) -> torch.optim.Optimizer:
+    groups = (
+        parameter_groups(model, optimization)
+        if parameter_groups is not None
+        else model.parameters()
+    )
+
+    return torch.optim.AdamW(
+        groups,
+        lr=optimization.learning_rate,
+        weight_decay=optimization.weight_decay,
+    )
 
 
 def _train_epoch(

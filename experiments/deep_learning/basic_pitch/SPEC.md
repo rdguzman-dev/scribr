@@ -492,10 +492,11 @@ def build_model(
   no tunable fft or mel parameters; everything is fixed by the pretrained
   weights and must not be exposed as config knobs.
 - `model`: `{"dropout": 0.1, "pretrained": true}`.
-- `optimization.learning_rate`: `1e-4`, not `1e-3`. The trunk is pretrained
-  and only 15,656 parameters. If the head trains too slowly at that rate,
-  use parameter groups (1e-4 for the trunk, 1e-3 for `temporal` and
-  `classifier`) rather than raising the global rate.
+- `optimization.learning_rate`: `1e-4`, not `1e-3`, for the pretrained
+  trunk. The trunk is only 15,656 parameters. Set
+  `optimization.head_learning_rate` to `1e-3` so the randomly initialized
+  `temporal` and `classifier` layers move faster without retuning the
+  trunk.
 
 Keep `class_weight_power = 0.5`, batch size 64, and the cosine schedule from
 the shared loop. Do not freeze the trunk: with 15,656 parameters freezing
