@@ -19,7 +19,10 @@ import torch.nn.functional as F
 from onnx import TensorProto, helper, numpy_helper
 
 from scripts.convert_basic_pitch import find_graph_tensors, load_graph
-from scribr.deep_learning import BasicPitchFrontend, BasicPitchTrunk
+from scribr.deep_learning.basic_pitch import (
+    BasicPitchFrontend,
+    BasicPitchTrunk,
+)
 
 pytestmark = pytest.mark.basic_pitch
 

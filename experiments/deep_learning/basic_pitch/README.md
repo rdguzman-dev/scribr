@@ -22,9 +22,9 @@ export SCRIBR_SOUNDFONT=/path/to/GeneralUser-GS.sf2
 
 The runtime path needs neither `basic-pitch` nor TensorFlow. The
 converted 36 KB weight archive is committed at
-`src/scribr/deep_learning/weights/basic_pitch_trunk.npz`, and the
-frontend kernels are rebuilt from NumPy and SciPy constants at import
-time.
+`src/scribr/deep_learning/basic_pitch/weights/basic_pitch_trunk.npz`,
+and the frontend kernels are rebuilt from NumPy and SciPy constants at
+import time.
 
 ## Smoke run
 

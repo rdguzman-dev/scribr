@@ -11,8 +11,10 @@ and a first supervised deep learning approach:
 - `scribr.data` streams the TFRecord dataset on demand.
 - `scribr.synthesis` renders a `Melody` to audio with FluidSynth.
 - `scribr.algorithmic` estimates notes with pYIN and spectral onset detection.
-- `scribr.deep_learning` trains a log-mel CNN to predict the dataset's
-  pitch sequence and exposes it through `Transcriber`.
+- `scribr.deep_learning` trains per-step pitch-sequence models and
+  exposes them through `Transcriber`. Shared dataset, target, and
+  transcription code lives in `common/`, and each architecture has its
+  own sub-package (`logmel_cnn/`, `basic_pitch/`).
 - `scribr.midi` exports a `Melody` to a Standard MIDI File.
 - `scribr.wav` saves synthesized audio to a WAV file.
 - `scribr.transcription` defines the `Transcriber` protocol that every
@@ -152,6 +154,9 @@ src/scribr/
 ├── algorithmic/         # algorithmic transcription approach
 ├── data/                # lazy TFRecord access (MelodyDataset)
 ├── deep_learning/       # supervised deep learning approach
+│   ├── common/          # shared dataset, targets, and transcriber
+│   ├── logmel_cnn/      # log-mel CNN features and model
+│   └── basic_pitch/     # Basic Pitch CQT frontend and trunk
 ├── evaluation/          # mir_eval metrics (evaluate, evaluate_transcriber)
 ├── llm/                 # LLM-based approach
 ├── midi/                # Melody -> .mid (write_midi)

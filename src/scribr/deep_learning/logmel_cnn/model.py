@@ -14,9 +14,9 @@ from collections.abc import Sequence
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from ..representation import STEPS_PER_MELODY
+from ...representation import STEPS_PER_MELODY
+from ..common.targets import NUM_CLASSES
 from .features import DEFAULT_N_MELS
-from .targets import NUM_CLASSES
 
 DEFAULT_CHANNELS = (32, 64, 128, 256)
 DEFAULT_DROPOUT = 0.1

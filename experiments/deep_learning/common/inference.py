@@ -30,7 +30,7 @@ from experiments.common.scoring import (
     evaluate_predictions,
     group_counts,
 )
-from scribr.deep_learning import (
+from scribr.deep_learning.common import (
     FeatureExtractor,
     SynthesizedMelodyDataset,
     melody_from_classes,

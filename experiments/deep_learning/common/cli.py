@@ -25,7 +25,7 @@ from experiments.common.tracking import (
     start_run,
 )
 from scribr.data import SPLITS
-from scribr.deep_learning import FeatureExtractor
+from scribr.deep_learning.common import FeatureExtractor
 
 from .data import default_synthesizer_factory, load_examples
 from .inference import run_evaluation, write_report

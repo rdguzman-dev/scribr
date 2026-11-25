@@ -29,7 +29,7 @@ from experiments.common.tracking import (
     log_params,
     start_run,
 )
-from scribr.deep_learning import (
+from scribr.deep_learning.common import (
     FeatureExtractor,
     SynthesizedMelodyDataset,
     class_weights,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from scribr.deep_learning import LogMelSpectrogram, PitchSequenceCNN
+from scribr.deep_learning.logmel_cnn import LogMelSpectrogram, PitchSequenceCNN
 from scribr.representation import STEPS_PER_MELODY
 
 

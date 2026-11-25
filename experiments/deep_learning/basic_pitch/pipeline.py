@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from experiments.deep_learning.common.spec import OptimizationSpec
-from scribr.deep_learning import (
+from scribr.deep_learning.basic_pitch import (
     BasicPitchFrontend,
     BasicPitchPitchSequenceCNN,
 )

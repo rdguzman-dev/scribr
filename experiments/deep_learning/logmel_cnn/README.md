@@ -165,5 +165,8 @@ experiments/deep_learning/logmel_cnn/
 The shared training loop, inference, configuration, and CLI live in
 [`experiments/deep_learning/common`](../common/). See the
 [deep learning README](../README.md) for how to add an architecture.
-The model itself lives in `src/scribr/deep_learning/`, next to the
-`DeepLearningTranscriber` that implements the `Transcriber` protocol.
+The model itself lives in
+[`src/scribr/deep_learning/logmel_cnn`](../../../src/scribr/deep_learning/logmel_cnn/).
+`DeepLearningTranscriber`, which implements the `Transcriber` protocol,
+and the dataset live in
+[`src/scribr/deep_learning/common`](../../../src/scribr/deep_learning/common/).

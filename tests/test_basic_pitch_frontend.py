@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 import torch
 
-from scribr.deep_learning import BasicPitchFrontend
 from scribr.deep_learning.basic_pitch import (
     HARMONIC_SHIFTS,
     N_BINS,
     N_HARMONICS,
     N_STACK_BINS,
+    BasicPitchFrontend,
 )
 
 

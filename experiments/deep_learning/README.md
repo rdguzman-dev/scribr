@@ -17,8 +17,8 @@ infrastructure in `common/`:
 
 ## Adding an architecture
 
-1. Add the model class in `src/scribr/deep_learning/`, next to
-   `model.py`, and export it from `src/scribr/deep_learning/__init__.py`.
+1. Create `src/scribr/deep_learning/<architecture>/` for the model, next
+   to `common/`, and export it from that sub-package's `__init__.py`.
    The model must map `(batch, n_features, time)` features to
    `(batch, steps, num_classes)` logits.
 2. Create `experiments/deep_learning/<architecture>/` with a `pipeline.py`

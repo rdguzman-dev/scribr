@@ -6,7 +6,8 @@ import numpy as np
 import pytest
 import torch
 
-from scribr.deep_learning import LogMelSpectrogram, fix_length
+from scribr.deep_learning.common import fix_length
+from scribr.deep_learning.logmel_cnn import LogMelSpectrogram
 
 
 def make_audio(seconds: float = 1.0) -> np.ndarray:

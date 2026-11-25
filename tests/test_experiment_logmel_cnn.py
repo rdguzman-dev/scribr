@@ -9,7 +9,7 @@ from experiments.deep_learning.logmel_cnn.pipeline import (
     build_features,
     build_model,
 )
-from scribr.deep_learning import LogMelSpectrogram, PitchSequenceCNN
+from scribr.deep_learning.logmel_cnn import LogMelSpectrogram, PitchSequenceCNN
 
 CONFIG_PATH = (
     Path(__file__).resolve().parents[1]

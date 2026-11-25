@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from scribr.deep_learning import NUM_CLASSES, PitchSequenceCNN
+from scribr.deep_learning.common import NUM_CLASSES
+from scribr.deep_learning.logmel_cnn import PitchSequenceCNN
 
 
 def tiny_model(**overrides) -> PitchSequenceCNN:
