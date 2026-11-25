@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib.metadata
 import json
 import platform
-import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
@@ -15,6 +14,7 @@ from .materialize import Manifest
 from .predictions import TextPredictions
 from .scoring import ExperimentEvaluation, group_counts
 from .synthesis import resolve_soundfont_path
+from .tracking import git_commit
 
 # Metric display order; anything else follows in the order it appears.
 _METRIC_ORDER = (
@@ -344,28 +344,6 @@ def ordered_metrics(metrics: Mapping[str, float]) -> list[str]:
 
 def _report_title(experiment: str) -> str:
     return experiment.replace("_", " ").strip().capitalize()
-
-
-def git_commit() -> str | None:
-    """Return the current git commit, or `None` when unavailable."""
-    repository = Path(__file__).resolve().parents[2]
-
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=repository,
-        )
-
-    except OSError:
-        return None
-
-    if result.returncode != 0:
-        return None
-
-    return result.stdout.strip() or None
 
 
 def _package_version(name: str) -> str | None:
