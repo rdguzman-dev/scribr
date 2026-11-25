@@ -229,6 +229,7 @@ def test_markdown_tables_and_sections(tmp_path: Path) -> None:
     )
     text = markdown_path.read_text()
 
+    assert text.startswith("# Human baseline report")
     assert "## Overall metrics" in text
     assert "## Per-instrument metrics" in text
     assert "## Examples" in text

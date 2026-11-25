@@ -543,9 +543,13 @@ def test_run_evaluation_writes_reports(
     assert data["metadata"]["num_examples"] == 4
     assert set(data["per_instrument"]) == {"piano", "violin"}
     assert "F-measure_no_offset" in data["overall"]
-    assert markdown_path.read_text(encoding="utf-8").startswith(
-        "# test_run report (test)"
-    )
+    markdown = markdown_path.read_text(encoding="utf-8")
+    assert markdown.startswith("# test_run report (test)")
+    assert "| Checkpoint | best.pt |" in markdown
+    assert "| Device | cpu |" in markdown
+    assert "## Overall metrics" in markdown
+    assert "## Per-instrument metrics" in markdown
+    assert "## Examples" not in markdown
 
 
 def _arm_result(name: str, score: float) -> ArmResult:
