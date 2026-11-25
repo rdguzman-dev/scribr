@@ -108,17 +108,21 @@ def log_artifact(path: str | Path) -> None:
     mlflow.log_artifact(str(path))
 
 
+def git_commit() -> str:
+    """Return the current git commit, or `unknown` when unavailable."""
+    return _git(["rev-parse", "HEAD"]) or "unknown"
+
+
 def git_metadata() -> dict[str, str]:
     """Return git commit and working-tree state as run tags.
 
     Returns `unknown` and `unknown` when the checkout cannot be
     inspected, so logging never fails on a machine without git.
     """
-    commit = _git(["rev-parse", "HEAD"])
     status = _git(["status", "--porcelain"])
 
     return {
-        "git.commit": commit if commit else "unknown",
+        "git.commit": git_commit(),
         "git.dirty": str(bool(status)).lower() if status is not None else "unknown",
     }
 
