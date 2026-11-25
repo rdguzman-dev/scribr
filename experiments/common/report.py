@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import importlib.metadata
-import json
 import platform
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .json import write_json
 from .markdown import display, format_score, markdown_table
 from .materialize import Manifest
 from .predictions import TextPredictions
@@ -268,9 +268,7 @@ def write_report_data(
     artifacts = Path(artifacts_dir)
 
     json_path = artifacts / "report.json"
-    json_path.write_text(
-        json.dumps(data, indent=2) + "\n", encoding="utf-8"
-    )
+    write_json(data, json_path)
 
     markdown_path = artifacts / "report.md"
     markdown_path.write_text(render_markdown(report), encoding="utf-8")

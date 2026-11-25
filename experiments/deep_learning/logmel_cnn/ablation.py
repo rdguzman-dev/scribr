@@ -19,13 +19,13 @@ Pass the full `config.json` sizes for a production comparison.
 from __future__ import annotations
 
 import argparse
-import json
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
+from experiments.common.json import write_json
 from experiments.common.markdown import markdown_table
 from experiments.common.tracking import (
     DEFAULT_TRACKING_URI,
@@ -229,7 +229,7 @@ def write_ablation_report(
     }
 
     json_path = artifacts / "ablation.json"
-    json_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    write_json(data, json_path)
 
     markdown_path = artifacts / "ablation.md"
     markdown_path.write_text(_markdown(result, metadata), encoding="utf-8")

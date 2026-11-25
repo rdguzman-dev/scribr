@@ -37,6 +37,7 @@ import numpy as np
 import optuna
 from optuna.samplers import BaseSampler, TPESampler
 
+from experiments.common.json import write_json
 from experiments.common.materialize import materialize
 from experiments.common.spec import ExperimentSpec
 from experiments.common.tracking import (
@@ -582,16 +583,10 @@ def run_tuning(
             )
             validation_metrics = dict(evaluation.metrics)
             validation_path = artifacts / "validation_metrics.json"
-            validation_path.write_text(
-                json.dumps(validation_metrics, indent=2) + "\n",
-                encoding="utf-8",
-            )
+            write_json(validation_metrics, validation_path)
 
         best_parameters_path = artifacts / "best_parameters.json"
-        best_parameters_path.write_text(
-            json.dumps(asdict(champion.trial.config), indent=2) + "\n",
-            encoding="utf-8",
-        )
+        write_json(asdict(champion.trial.config), best_parameters_path)
 
         trials_path = artifacts / "trials_stage1.csv"
         study.trials_dataframe().to_csv(trials_path, index=False)

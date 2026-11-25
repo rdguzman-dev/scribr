@@ -15,13 +15,13 @@ uv run python -m experiments.algorithmic.ablation \
 from __future__ import annotations
 
 import argparse
-import json
 import platform
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from experiments.common.json import read_json, write_json
 from experiments.common.markdown import display, format_score, markdown_table
 from experiments.common.materialize import Manifest, materialize
 from experiments.common.report import git_commit
@@ -166,7 +166,7 @@ def write_ablation_report(
     data = _report_dict(result)
 
     json_path = artifacts / "ablation.json"
-    json_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    write_json(data, json_path)
 
     markdown_path = artifacts / "ablation.md"
     markdown_path.write_text(_markdown(data), encoding="utf-8")
@@ -447,7 +447,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     parameters = AlgorithmicConfig(
-        **json.loads(args.parameters.read_text()) if args.parameters else {}
+        **read_json(args.parameters) if args.parameters else {}
     )
     artifacts_dir = args.artifacts_dir
 
