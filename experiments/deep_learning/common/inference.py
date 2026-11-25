@@ -8,19 +8,23 @@ and per-instrument means plus the per-example rows.
 
 from __future__ import annotations
 
-import json
 import platform
 from collections.abc import Callable, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from experiments.common.markdown import display, format_score, markdown_table
-from experiments.common.report import git_commit, metric_headers, metric_table
+from experiments.common.markdown import display
+from experiments.common.report import (
+    ExampleReport,
+    InstrumentReport,
+    ReportData,
+    git_commit,
+    write_report_data,
+)
 from experiments.common.scoring import (
     ExperimentEvaluation,
     evaluate_predictions,
@@ -123,48 +127,65 @@ def write_report(
     artifacts = Path(artifacts_dir)
     artifacts.mkdir(parents=True, exist_ok=True)
     counts = group_counts(evaluation)
-
-    data = {
-        "experiment": config.name,
-        "split": split,
-        "checkpoint": str(checkpoint),
-        "metadata": {
-            "git_commit": git_commit(),
-            "python_version": platform.python_version(),
-            "torch_version": torch.__version__,
-            "device": device,
-            "num_examples": len(evaluation.per_example),
-            "tempo": evaluation.tempo,
-            "metric_options": dict(evaluation.metric_options),
-            "config": config.to_dict(),
-        },
-        "overall": dict(evaluation.metrics),
-        "per_instrument": {
-            instrument: {
-                "num_examples": counts.get(instrument, 0),
-                "metrics": dict(metrics),
-            }
+    metadata = {
+        "git_commit": git_commit(),
+        "python_version": platform.python_version(),
+        "torch_version": torch.__version__,
+        "device": device,
+        "num_examples": len(evaluation.per_example),
+        "tempo": evaluation.tempo,
+        "metric_options": dict(evaluation.metric_options),
+        "config": config.to_dict(),
+    }
+    options = metadata["metric_options"]
+    report = ReportData(
+        title=f"{config.name} report ({split})",
+        experiment=config.name,
+        metadata=metadata,
+        metadata_rows=(
+            ("Git commit", display(metadata["git_commit"])),
+            ("Python", metadata["python_version"]),
+            ("Torch", metadata["torch_version"]),
+            ("Device", metadata["device"]),
+            ("Checkpoint", str(checkpoint)),
+            ("Examples evaluated", str(metadata["num_examples"])),
+            ("Tempo (BPM)", str(metadata["tempo"])),
+            (
+                "Onset tolerance (s)",
+                str(options["onset_tolerance"]),
+            ),
+            (
+                "Pitch tolerance (cents)",
+                str(options["pitch_tolerance"]),
+            ),
+        ),
+        overall=evaluation.metrics,
+        per_instrument={
+            instrument: InstrumentReport(
+                num_examples=counts.get(instrument, 0),
+                metrics=metrics,
+            )
             for instrument, metrics in evaluation.grouped_metrics.items()
         },
-        "examples": [
-            {
-                "id": example.example_id,
-                "instrument": example.group,
-                "off_grid_onsets": example.off_grid_onsets,
-                "off_grid_offsets": example.off_grid_offsets,
-                "metrics": dict(example.metrics),
-            }
+        examples=tuple(
+            ExampleReport(
+                id=example.example_id,
+                instrument=example.group,
+                off_grid_onsets=example.off_grid_onsets,
+                off_grid_offsets=example.off_grid_offsets,
+                metrics=example.metrics,
+            )
             for example in evaluation.per_example
-        ],
-    }
+        ),
+        show_group_counts=False,
+        show_examples=False,
+    )
 
-    json_path = artifacts / "report.json"
-    json_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-
-    markdown_path = artifacts / "report.md"
-    markdown_path.write_text(_markdown(data), encoding="utf-8")
-
-    return json_path, markdown_path
+    return write_report_data(
+        report,
+        artifacts,
+        provenance={"split": split, "checkpoint": str(checkpoint)},
+    )
 
 
 def _estimates(
@@ -182,64 +203,3 @@ def _estimates(
             melodies.append(decode(row.tolist()))
 
     return melodies
-
-
-def _markdown(data: dict[str, Any]) -> str:
-    metadata = data["metadata"]
-
-    lines = [
-        f"# {data['experiment']} report ({data['split']})",
-        "",
-        "## Metadata",
-        "",
-        markdown_table(
-            ("Field", "Value"),
-            (
-                ("Git commit", display(metadata["git_commit"])),
-                ("Python", metadata["python_version"]),
-                ("Torch", metadata["torch_version"]),
-                ("Device", metadata["device"]),
-                ("Checkpoint", data["checkpoint"]),
-                ("Examples evaluated", str(metadata["num_examples"])),
-                ("Tempo (BPM)", str(metadata["tempo"])),
-                (
-                    "Onset tolerance (s)",
-                    str(metadata["metric_options"]["onset_tolerance"]),
-                ),
-                (
-                    "Pitch tolerance (cents)",
-                    str(metadata["metric_options"]["pitch_tolerance"]),
-                ),
-            ),
-        ),
-        "",
-        "## Overall metrics",
-        "",
-        metric_table(data["overall"]),
-        "",
-        "## Per-instrument metrics",
-        "",
-        _per_instrument_table(data["per_instrument"]),
-        "",
-    ]
-
-    return "\n".join(lines)
-
-
-def _per_instrument_table(per_instrument: dict[str, Any]) -> str:
-    if not per_instrument:
-        return "No examples were evaluated."
-
-    headers = metric_headers(per_instrument.values())
-
-    return markdown_table(
-        ("Instrument", "N") + headers,
-        tuple(
-            (instrument, str(entry["num_examples"]))
-            + tuple(
-                format_score(entry["metrics"].get(name))
-                for name in headers
-            )
-            for instrument, entry in per_instrument.items()
-        ),
-    )
