@@ -6,11 +6,11 @@ import numpy as np
 import pytest
 import torch
 
-from scribr.deep_learning import (
-    LogMelSpectrogram,
+from scribr.deep_learning.common import (
     SynthesizedMelodyDataset,
     pitch_sequence_to_classes,
 )
+from scribr.deep_learning.logmel_cnn import LogMelSpectrogram
 from scribr.representation import (
     HOLD_TOKEN,
     NOTE_OFF_TOKEN,

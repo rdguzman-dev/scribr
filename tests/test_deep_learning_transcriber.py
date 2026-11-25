@@ -7,12 +7,12 @@ import pytest
 import torch
 from torch import nn
 
-from scribr.deep_learning import (
+from scribr.deep_learning.common import (
     NUM_CLASSES,
     DeepLearningTranscriber,
-    LogMelSpectrogram,
     pitch_sequence_to_classes,
 )
+from scribr.deep_learning.logmel_cnn import LogMelSpectrogram
 from scribr.representation import (
     HOLD_TOKEN,
     NOTE_OFF_TOKEN,

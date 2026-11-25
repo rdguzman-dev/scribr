@@ -16,8 +16,8 @@ import torch.nn.functional as F
 import torchaudio
 from torch import Tensor, nn
 
-from ..representation import Melody
-from ..synthesis.synthesizer import DEFAULT_TEMPO_BPM
+from ...representation import Melody
+from ...synthesis.synthesizer import DEFAULT_TEMPO_BPM
 from .features import FeatureExtractor, fix_length
 from .targets import melody_from_classes
 

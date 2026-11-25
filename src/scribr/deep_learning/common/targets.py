@@ -14,7 +14,7 @@ from collections.abc import Sequence
 import torch
 from torch import Tensor
 
-from ..representation import (
+from ...representation import (
     DATASET_MAX_PITCH,
     DATASET_MIN_PITCH,
     HOLD_TOKEN,

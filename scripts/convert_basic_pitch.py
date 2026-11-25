@@ -35,6 +35,7 @@ DEFAULT_OUTPUT = (
     / "src"
     / "scribr"
     / "deep_learning"
+    / "basic_pitch"
     / "weights"
     / "basic_pitch_trunk.npz"
 )

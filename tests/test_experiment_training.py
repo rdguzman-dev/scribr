@@ -48,7 +48,7 @@ from experiments.deep_learning.logmel_cnn.pipeline import (
     build_features,
     build_model,
 )
-from scribr.deep_learning import NUM_CLASSES
+from scribr.deep_learning.common import NUM_CLASSES
 from scribr.representation import STEPS_PER_MELODY, Melody
 from scribr.synthesis import Instrument
 

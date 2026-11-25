@@ -6,16 +6,14 @@ import numpy as np
 import pytest
 import torch
 
-from scribr.deep_learning import (
-    NUM_CLASSES,
-    BasicPitchPitchSequenceCNN,
-    BasicPitchTrunk,
-)
 from scribr.deep_learning.basic_pitch import (
     N_HARMONICS,
     N_STACK_BINS,
+    BasicPitchPitchSequenceCNN,
+    BasicPitchTrunk,
     _load_weights,
 )
+from scribr.deep_learning.common import NUM_CLASSES
 
 
 def tiny_model(**overrides) -> BasicPitchPitchSequenceCNN:

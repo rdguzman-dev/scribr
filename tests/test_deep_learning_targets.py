@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from scribr.deep_learning import (
+from scribr.deep_learning.common import (
     HOLD_CLASS,
     NOTE_OFF_CLASS,
     NUM_CLASSES,

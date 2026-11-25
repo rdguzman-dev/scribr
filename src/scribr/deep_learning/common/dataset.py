@@ -14,8 +14,8 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from ..representation import MelodyExample
-from ..synthesis import Synthesizer
+from ...representation import MelodyExample
+from ...synthesis import Synthesizer
 from .features import FeatureExtractor
 from .targets import pitch_sequence_to_classes
 

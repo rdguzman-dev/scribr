@@ -10,7 +10,7 @@ from experiments.deep_learning.basic_pitch.pipeline import (
     build_parameter_groups,
 )
 from experiments.deep_learning.common.spec import TrainingConfig
-from scribr.deep_learning import (
+from scribr.deep_learning.basic_pitch import (
     BasicPitchFrontend,
     BasicPitchPitchSequenceCNN,
 )

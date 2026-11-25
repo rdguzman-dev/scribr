@@ -29,10 +29,9 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from ..representation import STEPS_PER_MELODY
-from .features import fix_length
-from .model import DEFAULT_DROPOUT
-from .targets import NUM_CLASSES
+from ...representation import STEPS_PER_MELODY
+from ..common.features import fix_length
+from ..common.targets import NUM_CLASSES
 
 SAMPLE_RATE = 22_050
 HOP_LENGTH = 256
@@ -42,6 +41,7 @@ BINS_PER_OCTAVE = 36
 N_HARMONICS = 8
 N_STACK_BINS = 264
 LOWPASS_LENGTH = 256
+DEFAULT_DROPOUT = 0.1
 
 # Harmonic ratios 0.5, 1, 2, ..., 7 map to bin offsets. The offsets are
 # positive shifts toward lower bin indices, so a positive shift zero-fills
@@ -56,7 +56,9 @@ _WEIGHTS_RESOURCE = "weights/basic_pitch_trunk.npz"
 
 @lru_cache(maxsize=1)
 def _load_weights() -> dict[str, np.ndarray]:
-    resource = files("scribr.deep_learning").joinpath(_WEIGHTS_RESOURCE)
+    resource = files("scribr.deep_learning.basic_pitch").joinpath(
+        _WEIGHTS_RESOURCE
+    )
 
     try:
         with resource.open("rb") as handle:
