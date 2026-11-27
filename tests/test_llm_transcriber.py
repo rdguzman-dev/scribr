@@ -1,5 +1,6 @@
 """Offline tests for Gemini audio encoding, tables, retries, and caching."""
 
+import base64
 import io
 import json
 from dataclasses import replace
@@ -17,6 +18,7 @@ from scribr.llm import transcriber as implementation
 from scribr.llm.table import parse_response, transcription_prompt
 from scribr.representation import Melody, Note
 from scribr.transcription import Transcriber
+from scribr.wav import encode_wav
 
 _TABLE = "pitch, onset, offset\nC4, 0.25, 0.75\nC4, 1, 1.5\n"
 _AUDIO = np.full(200, 0.25, dtype=np.float32)
@@ -30,6 +32,8 @@ def offline(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     monkeypatch.setattr(implementation.time, "sleep", MagicMock())
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("SCRIBR_LLM_MODEL", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
     return constructor
 
 
@@ -251,6 +255,32 @@ def test_invalid_configuration(kwargs: dict[str, object]) -> None:
         _config(**kwargs)
 
 
+def test_generic_environment_names_take_precedence(
+    monkeypatch: pytest.MonkeyPatch, offline: MagicMock
+) -> None:
+    monkeypatch.setenv("LLM_API_KEY", "new-offline-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "old-offline-key")
+    monkeypatch.setenv("LLM_MODEL", "new-model")
+    monkeypatch.setenv("SCRIBR_LLM_MODEL", "old-model")
+    offline.return_value = _client()
+    transcriber = LLMTranscriber()
+    assert transcriber.config.model == "new-model"
+    assert LLMConfig(model="explicit-model").model == "explicit-model"
+    transcriber.transcribe(_AUDIO, 100, 120)
+    assert offline.call_args.kwargs["api_key"] == "new-offline-key"
+    transcriber.close()
+
+
+def test_empty_generic_key_does_not_reuse_old_key(
+    monkeypatch: pytest.MonkeyPatch, offline: MagicMock
+) -> None:
+    monkeypatch.setenv("LLM_API_KEY", "")
+    monkeypatch.setenv("GEMINI_API_KEY", "old-offline-key")
+    with pytest.raises(ValueError, match="LLM_API_KEY"):
+        LLMTranscriber(_config()).transcribe(_AUDIO, 100, 120)
+    offline.assert_not_called()
+
+
 def test_malformed_then_corrected_table_uses_one_retry_budget() -> None:
     client = _client()
     client.models.generate_content.side_effect = [
@@ -304,6 +334,12 @@ def test_sdk_serializes_inline_audio_without_network(model: str) -> None:
         payload["contents"][0]["parts"][1]["inlineData"]["mime_type"]
         == "audio/wav"
     )
+    inline_data = payload["contents"][0]["parts"][1]["inlineData"]["data"]
+    # The SDK can emit URL-safe base64; both alphabets must decode intact.
+    encoded_wav = base64.b64decode(
+        inline_data, altchars=b"-_", validate=True
+    )
+    assert encoded_wav == encode_wav(_AUDIO, 100)
     assert payload["generationConfig"]["responseMimeType"] == "text/plain"
     # Gemini 3 and 4 do not support an explicit candidate count.
     assert "candidateCount" not in payload["generationConfig"]

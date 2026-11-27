@@ -1,4 +1,4 @@
-"""LLM-based monophonic transcription using Gemini audio input."""
+"""LLM-based monophonic transcription using Gemini or Qwen audio input."""
 
 from .transcriber import LLMConfig, LLMTranscriber, LLMTranscriptionError
 

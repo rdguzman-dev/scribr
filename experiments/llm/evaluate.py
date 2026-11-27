@@ -1,4 +1,4 @@
-"""Evaluate Gemini on materialized WAVs, with a four-example default cap."""
+"""Evaluate an audio LLM on materialized WAVs, with a four-example cap."""
 
 import argparse
 import importlib.metadata
@@ -38,8 +38,16 @@ def main() -> None:
         "--artifacts-dir", type=Path, default=_DIR / "artifacts"
     )
     parser.add_argument("--max-examples", type=_positive_int, default=4)
-    parser.add_argument("--model", help="override SCRIBR_LLM_MODEL")
+    parser.add_argument(
+        "--model", help="override LLM_MODEL or SCRIBR_LLM_MODEL"
+    )
+    parser.add_argument(
+        "--provider", choices=("gemini", "qwen"), default="gemini"
+    )
+    parser.add_argument("--base-url", help="override QWEN_BASE_URL")
     parser.add_argument("--unquantized", action="store_true")
+    parser.add_argument("--trim-leading-silence", action="store_true")
+    parser.add_argument("--silence-threshold", type=float, default=2 / 32768)
     parser.add_argument("--max-attempts", type=_positive_int, default=3)
     parser.add_argument("--timeout-seconds", type=float, default=60.0)
     parser.add_argument("--min-interval-seconds", type=float, default=1.0)
@@ -49,13 +57,17 @@ def main() -> None:
 
     config = LLMConfig(
         model=args.model,
+        provider=args.provider,
+        qwen_base_url=args.base_url,
+        trim_leading_silence=args.trim_leading_silence,
+        silence_threshold=args.silence_threshold,
         quantize=not args.unquantized,
         max_attempts=args.max_attempts,
         timeout_seconds=args.timeout_seconds,
         min_interval_seconds=args.min_interval_seconds,
     )
     if not config.model:
-        parser.error("set SCRIBR_LLM_MODEL or pass --model")
+        parser.error("set LLM_MODEL or SCRIBR_LLM_MODEL, or pass --model")
 
     if args.manifest:
         source_manifest = Manifest.load(args.manifest)
@@ -80,7 +92,7 @@ def main() -> None:
 
     manifest = replace(
         source_manifest,
-        experiment="llm_gemini",
+        experiment=f"llm_{config.provider}",
         examples=source_manifest.examples[: args.max_examples],
     )
     if not manifest.examples:
@@ -117,7 +129,7 @@ def main() -> None:
             "parameters": asdict(config),
             "source": {"manifest": source_manifest.to_dict()},
             "llm": {
-                "provider": "gemini",
+                "provider": config.provider,
                 "prompt_version": PROMPT_VERSION,
                 "max_examples": args.max_examples,
                 "selected_ids": [item.id for item in manifest.examples],
@@ -129,6 +141,7 @@ def main() -> None:
         package_versions={
             "google-genai": importlib.metadata.version("google-genai"),
             "numpy": np.__version__,
+            "httpx2": importlib.metadata.version("httpx2"),
         },
     )
     primary = evaluation.metrics["F-measure_no_offset"]

@@ -4,14 +4,15 @@ Scribr explores algorithmic, supervised deep learning, and LLM-based
 approaches to automated music transcription for quantized monophonic audio.
 
 The repository contains shared infrastructure, an algorithmic baseline,
-supervised deep learning approaches, and a Gemini-based LLM transcriber:
+supervised deep learning approaches, and Gemini/Qwen LLM transcribers:
 
 - `scribr.representation` defines the canonical `Note`, `Melody`, and
   `MelodyExample` types and the dataset pitch-sequence codec.
 - `scribr.data` streams the TFRecord dataset on demand.
 - `scribr.synthesis` renders a `Melody` to audio with FluidSynth.
 - `scribr.algorithmic` estimates notes with pYIN and spectral onset detection.
-- `scribr.llm` sends in-memory WAV audio to Gemini and validates note tables.
+- `scribr.llm` sends in-memory WAV audio to Gemini or Qwen and validates
+  note tables.
 - `scribr.deep_learning` trains per-step pitch-sequence models and
   exposes them through `Transcriber`. Shared dataset, target, and
   transcription code lives in `common/`, and each architecture has its
@@ -338,8 +339,8 @@ step and decodes it to a `Melody`. Training and evaluation live in
 [`experiments/deep_learning/logmel_cnn`](experiments/deep_learning/logmel_cnn/README.md).
 The algorithmic approach is implemented by `AlgorithmicTranscriber`; see
 [`experiments/algorithmic`](experiments/algorithmic/README.md) for evaluation
-and a direct comparison with the human baseline. `LLMTranscriber` uses Gemini
-audio input and the shared CSV-like note-table format; see
+and a direct comparison with the human baseline. `LLMTranscriber` uses
+Gemini or Qwen audio input and the shared CSV-like note-table format; see
 [`experiments/llm`](experiments/llm/README.md) for credentials, caching,
 evaluation limits, and offline tests. Each approach implements `Transcriber`
 and returns the canonical `Melody`:

@@ -22,6 +22,8 @@ from scribr.wav import write_wav
 
 @pytest.fixture
 def provider(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
     client = MagicMock()
     client.models.generate_content.return_value = (
         types.GenerateContentResponse(
@@ -211,6 +213,51 @@ def test_default_config_matches_baseline_synthesis() -> None:
     assert config.dataset == DatasetSpec("test", 4)
     assert config.instruments == algorithmic.instruments
     assert config.synthesis == algorithmic.synthesis
+
+
+def test_qwen_cli_records_provider_and_endpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, output = tmp_path / "source", tmp_path / "output"
+    _manifest(source, 1)
+    received = []
+
+    class OfflineQwen:
+        api_calls = 0
+        cache_hits = 0
+
+        def __init__(self, config: object, *, cache_dir: Path) -> None:
+            received.append(config)
+
+        def transcribe(
+            self, audio: np.ndarray, sample_rate: int, tempo: float
+        ) -> Melody:
+            self.api_calls += 1
+            return Melody((Note(69, 0, 1),))
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(experiment, "LLMTranscriber", OfflineQwen)
+    _run(
+        monkeypatch,
+        source,
+        output,
+        "--provider",
+        "qwen",
+        "--model",
+        "qwen3.8-omni-flash",
+        "--base-url",
+        "https://ws-test.ap-southeast-1.maas.aliyuncs.com/api/v1",
+    )
+    report = json.loads((output / "report.json").read_text())
+    assert report["experiment"] == "llm_qwen"
+    assert report["llm"]["provider"] == "qwen"
+    assert report["overall"]["F-measure_no_offset"] == 1
+    assert report["parameters"]["qwen_base_url"].endswith(
+        "/compatible-mode/v1/"
+    )
+    assert received[0].provider == "qwen"
 
 
 @pytest.mark.parametrize("limit", ["0", "-1"])

@@ -36,7 +36,11 @@ JSON, MIDI data, or extra columns."""
 
 
 def parse_response(
-    text: str, duration_beats: float, *, quantize: bool = True
+    text: str,
+    duration_beats: float,
+    *,
+    quantize: bool = True,
+    time_origin_beats: float = 0.0,
 ) -> Melody:
     """Parse and validate a model table before optional 0.25-beat rounding.
 
@@ -47,6 +51,8 @@ def parse_response(
         text: Completed model response in the shared note-table format.
         duration_beats: Maximum allowed note offset, including audio tails.
         quantize: Round times to the dataset's 16th-note grid.
+        time_origin_beats: Leading silence removed from the supplied audio.
+            Restore this origin before quantizing onto the original grid.
 
     Returns:
         A chronological, non-overlapping canonical `Melody`.
@@ -57,6 +63,8 @@ def parse_response(
     """
     if not math.isfinite(duration_beats) or duration_beats < 0:
         raise ValueError("duration_beats must be finite and non-negative")
+    if not math.isfinite(time_origin_beats) or time_origin_beats < 0:
+        raise ValueError("time_origin_beats must be finite and non-negative")
 
     table = text.strip()
     lines = table.splitlines()
@@ -79,11 +87,23 @@ def parse_response(
             raise ValueError("note extends beyond the audio duration")
         previous_offset = note.offset
 
+    if time_origin_beats:
+        melody = Melody(
+            tuple(
+                Note(
+                    note.pitch,
+                    note.onset + time_origin_beats,
+                    note.offset + time_origin_beats,
+                )
+                for note in melody
+            )
+        )
+
     if not quantize:
         return melody
 
     steps = STEPS_PER_QUARTER_NOTE
-    last_step = math.floor((duration_beats + 1e-6) * steps)
+    last_step = math.floor((duration_beats + time_origin_beats + 1e-6) * steps)
     notes = []
     for note in melody:
         onset = math.floor(note.onset * steps + 0.5)
