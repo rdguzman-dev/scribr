@@ -4,13 +4,15 @@ Scribr explores algorithmic, supervised deep learning, and LLM-based
 approaches to automated music transcription for quantized monophonic audio.
 
 The repository contains shared infrastructure, an algorithmic baseline,
-and a first supervised deep learning approach:
+supervised deep learning approaches, and Gemini/Qwen LLM transcribers:
 
 - `scribr.representation` defines the canonical `Note`, `Melody`, and
   `MelodyExample` types and the dataset pitch-sequence codec.
 - `scribr.data` streams the TFRecord dataset on demand.
 - `scribr.synthesis` renders a `Melody` to audio with FluidSynth.
 - `scribr.algorithmic` estimates notes with pYIN and spectral onset detection.
+- `scribr.llm` sends in-memory WAV audio to Gemini or Qwen and validates
+  note tables.
 - `scribr.deep_learning` trains per-step pitch-sequence models and
   exposes them through `Transcriber`. Shared dataset, target, and
   transcription code lives in `common/`, and each architecture has its
@@ -22,8 +24,6 @@ and a first supervised deep learning approach:
 - `scribr.evaluation` scores a transcription against a reference
   `Melody` with `mir_eval`.
 
-The LLM approach is not implemented yet.
-
 ## Setup
 
 ### Requirements
@@ -33,8 +33,8 @@ The LLM approach is not implemented yet.
 - FluidSynth and a General MIDI SoundFont (only for audio synthesis)
 
 `uv sync` installs `librosa`, PyTorch, `torchaudio`, `numpy`, `mido`, `tfrecord`,
-`pyfluidsynth`, `mir_eval`, `pytest`, and MLflow. TensorFlow is not
-required.
+`pyfluidsynth`, `mir_eval`, `google-genai`, `pytest`, and MLflow. TensorFlow
+is not required.
 
 ### 1. Install dependencies
 
@@ -162,7 +162,7 @@ src/scribr/
 ├── midi/                # Melody -> .mid (write_midi)
 ├── representation/      # Note, Melody, MelodyExample, pitch-sequence codec
 ├── synthesis/           # Melody -> audio (Synthesizer)
-├── wav/                 # audio -> .wav (write_wav)
+├── wav/                 # audio -> WAV bytes or file (encode_wav, write_wav)
 └── transcription.py     # Transcriber protocol (audio -> Melody)
 tests/
 ```
@@ -263,9 +263,9 @@ preserved.
 
 ### Synthesis
 
-`Synthesizer` renders a `Melody` to a mono `float32` waveform in memory. Audio is
-synthesized on demand from dataset melodies and is not distributed or stored by
-Scribr.
+`Synthesizer` renders a `Melody` to a mono `float32` waveform in memory. Audio
+is synthesized on demand from dataset melodies. Experiment runners can
+separately save these waveforms for reproducible evaluation.
 
 ```python
 from scribr.data import MelodyDataset
@@ -302,8 +302,10 @@ write_wav(audio, synthesizer.sample_rate, "output.wav")
 ```
 
 Samples outside `[-1, 1]` are clipped rather than wrapped, so the writer
-also accepts unnormalized audio. WAV is an export format only; nothing in
-the dataset, training, or evaluation path reads it.
+also accepts unnormalized audio. `encode_wav(audio, sample_rate)` returns
+the same WAV bytes in memory without creating a file. Dataset loading and
+synthesis stay lazy; reproducible experiments separately materialize WAVs
+and reference tables and verify their manifest hashes before evaluation.
 
 ### MIDI export
 
@@ -337,10 +339,11 @@ step and decodes it to a `Melody`. Training and evaluation live in
 [`experiments/deep_learning/logmel_cnn`](experiments/deep_learning/logmel_cnn/README.md).
 The algorithmic approach is implemented by `AlgorithmicTranscriber`; see
 [`experiments/algorithmic`](experiments/algorithmic/README.md) for evaluation
-and a direct comparison with the human baseline. The LLM approach is not
-implemented yet. Each new approach should implement `Transcriber` and return
-the canonical
-`Melody`:
+and a direct comparison with the human baseline. `LLMTranscriber` uses
+Gemini or Qwen audio input and the shared CSV-like note-table format; see
+[`experiments/llm`](experiments/llm/README.md) for credentials, caching,
+evaluation limits, and offline tests. Each approach implements `Transcriber`
+and returns the canonical `Melody`:
 
 ```python
 import numpy as np

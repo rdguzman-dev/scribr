@@ -19,6 +19,13 @@ mlruns/
 mlflow.db*
 experiments/deep_learning/*/artifacts/
 experiments/algorithmic/artifacts/
+experiments/llm/artifacts/
+
+# API credentials and local response caches
+.env
+.env.*
+!.env.example
+.scribr-llm-cache/
 
 # Local IDE configuration
 .idea/

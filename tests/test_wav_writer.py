@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import wave
 from pathlib import Path
 
 import numpy as np
 import pytest
 
-from scribr.wav import write_wav
+from scribr.wav import encode_wav, write_wav
 
 
 def read_wav(path: Path) -> tuple[np.ndarray, int]:
@@ -98,3 +99,36 @@ def test_invalid_sample_rate_rejected(tmp_path: Path) -> None:
             0,
             tmp_path / "melody.wav",
         )
+
+
+@pytest.mark.parametrize(
+    "samples",
+    [
+        np.array([0, 0.6, -0.6, 2, -2], dtype=np.float32),
+        np.zeros(0, dtype=np.float32),
+    ],
+)
+def test_memory_encoding_matches_file_bytes(
+    samples: np.ndarray, tmp_path: Path
+) -> None:
+    encoded = encode_wav(samples, 22050)
+    path = write_wav(samples, 22050, tmp_path / "audio.wav")
+    assert path.read_bytes() == encoded
+    with wave.open(io.BytesIO(encoded), "rb") as source:
+        assert source.getnchannels() == 1
+        assert source.getsampwidth() == 2
+        assert source.getnframes() == samples.size
+
+
+@pytest.mark.parametrize(
+    "samples",
+    [
+        np.array([np.nan]),
+        np.array([np.inf]),
+        np.zeros((2, 3)),
+        np.zeros(3, dtype=int),
+    ],
+)
+def test_invalid_memory_audio_is_rejected(samples: np.ndarray) -> None:
+    with pytest.raises(ValueError):
+        encode_wav(samples, 22050)
