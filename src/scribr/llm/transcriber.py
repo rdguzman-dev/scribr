@@ -182,7 +182,6 @@ class LLMTranscriber:
                     ],
                     config=types.GenerateContentConfig(
                         temperature=0,
-                        candidate_count=1,
                         max_output_tokens=self.config.max_output_tokens,
                         response_mime_type="text/plain",
                     ),

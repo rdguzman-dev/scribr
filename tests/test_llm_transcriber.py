@@ -266,7 +266,8 @@ def test_malformed_then_corrected_table_uses_one_retry_budget() -> None:
     )
 
 
-def test_sdk_serializes_inline_audio_without_network() -> None:
+@pytest.mark.parametrize("model", ["gemini-3.5-flash-lite", "gemini-4-hydrogen"])
+def test_sdk_serializes_inline_audio_without_network(model: str) -> None:
     requests = []
 
     def respond(request: httpx2.Request) -> httpx2.Response:
@@ -293,7 +294,7 @@ def test_sdk_serializes_inline_audio_without_network() -> None:
             vertexai=False,
             http_options=types.HttpOptions(httpx_client=transport),
         ) as sdk:
-            result = LLMTranscriber(_config(), client=sdk).transcribe(
+            result = LLMTranscriber(_config(model=model), client=sdk).transcribe(
                 _AUDIO, 100, 120
             )
     assert len(result) == 2
@@ -304,6 +305,8 @@ def test_sdk_serializes_inline_audio_without_network() -> None:
         == "audio/wav"
     )
     assert payload["generationConfig"]["responseMimeType"] == "text/plain"
+    # Gemini 3 and 4 do not support an explicit candidate count.
+    assert "candidateCount" not in payload["generationConfig"]
     assert "offline-key" not in requests[0].content.decode()
 
 
